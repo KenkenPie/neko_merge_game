@@ -11,10 +11,12 @@ import GameBoard from '../components/GameBoard.vue'
 </template>
 
 <style scoped>
+
 .game-page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px;
+  padding: 24px;
+  min-height: 100vh;
 }
 </style>
