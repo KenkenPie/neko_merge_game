@@ -121,14 +121,14 @@ function addMergeEffect(x, y) {
   }, 400);
 }
 
-  /* =========================
+/* =========================
    工具函式
    ========================= */
 
-  // 隨機產生 LV1～LV3 的球
-  function getRandomLevel() {
-    return Math.floor(Math.random() * 4) + 1;
-  };
+// 隨機產生 LV1～LV3 的球
+function getRandomLevel() {
+  return Math.floor(Math.random() * 4) + 1;
+}
 
 // 根據球的等級決定要使用圖片還是顏色
 // 如果該等級有對應圖片，就使用圖片(texture)
@@ -340,6 +340,18 @@ defineExpose({
   restartGame,
 });
 
+// 判斷螢幕大小
+
+function isMobile() {
+  return window.innerWidth <= 768;
+}
+
+function dropBall(event) {
+  if (!isMobile()) return;
+
+  addBallAtX(previewX.value);
+}   
+
 /* =========================
    點擊新增球
    ========================= */
@@ -356,10 +368,10 @@ function addBall(event) {
   const { Bodies, Composite } = Matter;
 
   const rect = gameBoard.value.getBoundingClientRect();
-//   修正rwd版本不準問題
-const scaleX = BOARD_WIDTH / rect.width;
+  //   修正rwd版本不準問題
+  const scaleX = BOARD_WIDTH / rect.width;
 
-const x = (event.clientX - rect.left) * scaleX;
+  const x = (event.clientX - rect.left) * scaleX;
 
   // 這次掉下來的球等級
   const level = currentLevel.value;
@@ -391,6 +403,9 @@ const x = (event.clientX - rect.left) * scaleX;
         class="game-board"
         @mousemove="movePreview"
         @click="addBall"
+        @pointerdown="startAim"
+        @pointermove="moveAim"
+        @pointerup="dropBall"
       >
         <div class="game-over-line"></div>
         <div
@@ -552,7 +567,6 @@ const x = (event.clientX - rect.left) * scaleX;
   display: block;
 }  */
 
-
 /* 合成特效 */
 .merge-effect {
   position: absolute;
@@ -633,5 +647,4 @@ const x = (event.clientX - rect.left) * scaleX;
     height: 640px !important;
   }
 }
-
 </style>
