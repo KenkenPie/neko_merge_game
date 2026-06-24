@@ -39,7 +39,7 @@ const emit = defineEmits(["update-score", "update-next-level"]);
 
 //*死亡線
 const isGameOver = ref(false);
-const GAME_OVER_LINE = 120;
+const GAME_OVER_LINE = 140;
 
 // 最大等級，超過 LV10 就不再合成
 const MAX_LEVEL = 10;
@@ -127,7 +127,7 @@ function addMergeEffect(x, y) {
 
 // 隨機產生 LV1～LV3 的球
 function getRandomLevel() {
-  return Math.floor(Math.random() * 4) + 1;
+  return Math.floor(Math.random() * 3) + 1;
 }
 
 // 根據球的等級決定要使用圖片還是顏色
@@ -314,7 +314,7 @@ onMounted(() => {
         // 建立合成後的新球
         const newBall = Bodies.circle(newX, newY, getBallRadius(newLevel), {
           level: newLevel,
-          restitution: 0.45,
+          restitution: 0.25,
           friction: 0.03,
           render: getBallRender(newLevel),
         });
@@ -405,7 +405,7 @@ function addBallAtX(x) {
   const level = currentLevel.value;
 
   const ball = Bodies.circle(x, 40, getBallRadius(level), {
-    restitution: 0.45,
+    restitution: 0.25,
     friction: 0.03,
     level,
     render: getBallRender(level),
@@ -517,10 +517,10 @@ function addBallAtX(x) {
 .game-over-line {
   position: absolute;
   width: 100%;
-  top: 120px;
+  top: 140px;
   left: 0;
-  height: 2px;
-  background: red;
+  height: 0;
+  border-top: 3px dashed red;
   z-index: 100;
   pointer-events: none;
 }
