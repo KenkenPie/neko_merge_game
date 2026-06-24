@@ -59,12 +59,12 @@ const handleRestart = () => {
         <button class="help-btn" @click="showRule = true">?</button>
         <button class="restart" @click="handleRestart">↺</button>
         <div class="score-area">
-          <div class="score-box">分數：{{ score }}</div>
-          <div class="best-score">最高分：{{ bestScore }}</div>
+          <div class="score-box">Score：{{ score }}</div>
+          <div class="best-score">Best Score：{{ bestScore }}</div>
         </div>
 
         <div class="next-box">
-          <p>Next</p>
+          <p>Next:</p>
 
           <img
             v-if="BALL_IMAGES[nextLevel]"
@@ -90,7 +90,11 @@ const handleRestart = () => {
   </div>
 </template>
 <style scoped>
+
+
+
 .game-page {
+  font-family:'Fredoka', sans-serif;
   min-height: 100vh;
 
   background:
@@ -150,11 +154,17 @@ const handleRestart = () => {
   font-weight: bold;
 }
 
+.next-box p{
+font-weight: 700;
+margin:0;
+}
+
 .next-mini {
   width: 44px;
   height: 44px;
   object-fit: contain;
   margin-top: 4px;
+
 }
 
 .rule-mask {
