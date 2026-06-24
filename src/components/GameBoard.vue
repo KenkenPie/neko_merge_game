@@ -356,7 +356,10 @@ function addBall(event) {
   const { Bodies, Composite } = Matter;
 
   const rect = gameBoard.value.getBoundingClientRect();
-  const x = event.clientX - rect.left;
+//   修正rwd版本不準問題
+const scaleX = BOARD_WIDTH / rect.width;
+
+const x = (event.clientX - rect.left) * scaleX;
 
   // 這次掉下來的球等級
   const level = currentLevel.value;
@@ -595,9 +598,10 @@ function addBall(event) {
 
 @media (max-width: 576px) {
   .game-board {
-    width: 360px;
-    height: 540px;
+    transform: scale(0.75);
+    transform-origin: top center;
   }
+
 
   .game-board :deep(canvas) {
     width: 360px !important;
