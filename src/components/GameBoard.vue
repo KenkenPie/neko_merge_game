@@ -3,6 +3,16 @@ import { onMounted, ref } from "vue";
 import Matter from "matter-js";
 import lv1Img from "../img/gameIcon/lv1.png";
 import lv2Img from "../img/gameIcon/lv2.png";
+import lv3Img from "../img/gameIcon/lv3.png";
+import lv4Img from "../img/gameIcon/lv4.png";
+import lv5Img from "../img/gameIcon/lv5.png";
+import lv6Img from "../img/gameIcon/lv6.png";
+import lv7Img from "../img/gameIcon/lv7.png";
+import lv8Img from "../img/gameIcon/lv8.png";
+import lv9Img from "../img/gameIcon/lv9.png";
+import lv10Img from "../img/gameIcon/lv10.png";
+
+
 /* =========================
    Vue 狀態資料
    ========================= */
@@ -36,13 +46,13 @@ const BALL_SIZES = {
   1: 40,
   2: 52,
   3: 64,
-  4: 76,
-  5: 88,
-  6: 100,
-  7: 112,
-  8: 124,
-  9: 136,
-  10: 148,
+  4: 84,
+  5: 104,
+  6: 124,
+  7: 140,
+  8: 150,
+  9: 164,
+  10: 184,
 };
 
 // 依照等級計算球半徑
@@ -55,6 +65,14 @@ function getBallRadius(level) {
 const BALL_IMAGES = {
   1: lv1Img,
   2: lv2Img,
+  3: lv3Img,
+  4: lv4Img,
+  5: lv5Img,
+  6: lv6Img,
+  7: lv7Img,
+  8: lv8Img,
+  9: lv9Img,
+  10: lv10Img,
 };
 
 // 不同等級的球顏色
@@ -92,7 +110,7 @@ function movePreview(event) {
 
 // 隨機產生 LV1～LV3 的球
 function getRandomLevel() {
-  return Math.floor(Math.random() * 4) + 1;
+  return Math.floor(Math.random() * 10) + 1;
 }
 
 // 根據球的等級決定要使用圖片還是顏色
@@ -110,11 +128,15 @@ function getBallRender(level) {
     };
   }
 
+
   return {
     fillStyle: BALL_COLORS[level],
   };
 }
 
+function getBallImage(level) {
+  return BALL_IMAGES[level] || null;
+}
 
 /* =========================
    Matter.js 物理引擎變數
@@ -240,7 +262,8 @@ onMounted(() => {
     event.pairs.forEach((pair) => {
       const ballA = pair.bodyA;
       const ballB = pair.bodyB;
-
+      這段用來關閉合成
+      // const ENABLE_MERGE = false;
       // 只有兩顆都有 level，且 level 相同時才合成　 標記正在合成中
       if (
         ballA.level &&
@@ -249,6 +272,8 @@ onMounted(() => {
         !ballA.isMerging &&
         !ballB.isMerging
       ) {
+        這段用來關閉合成
+        // if (!ENABLE_MERGE) return;
         ballA.isMerging = true;
         ballB.isMerging = true;
 
@@ -277,9 +302,9 @@ onMounted(() => {
           render: getBallRender(newLevel),
         });
 
-    // 加入新球
-    Composite.add(engine.world, newBall);
-  }
+        // 加入新球
+        Composite.add(engine.world, newBall);
+      }
     });
   });
 });
@@ -333,11 +358,17 @@ function addBall(event) {
     <div class="game-wrapper">
       <div ref="gameBoard" class="game-board" @mousemove="movePreview" @click="addBall">
         <div class="game-over-line"></div>
-        <div class="preview-ball" :style="{
+        <img v-if="getBallImage(currentLevel)" class="preview-ball" :src="getBallImage(currentLevel)" :style="{
+          left: `${previewX}px`,
+          width: `${BALL_SIZES[currentLevel]}px`,
+          height: `${BALL_SIZES[currentLevel]}px`,
+        }" />
+
+        <div v-else class="preview-ball" :style="{
           left: `${previewX}px`,
           backgroundColor: BALL_COLORS[currentLevel],
-          width: `${getBallRadius(currentLevel) * 2}px`,
-          height: `${getBallRadius(currentLevel) * 2}px`,
+          width: `${BALL_SIZES[currentLevel]}px`,
+          height: `${BALL_SIZES[currentLevel]}px`,
         }"></div>
       </div>
     </div>
@@ -345,10 +376,15 @@ function addBall(event) {
     <div class="next-box">
       <p>Next:</p>
 
-      <div class="next-ball" :style="{
+      <img v-if="getBallImage(nextLevel)" class="next-ball" :src="getBallImage(nextLevel)" :style="{
+        width: `${BALL_SIZES[nextLevel]}px`,
+        height: `${BALL_SIZES[nextLevel]}px`,
+      }" />
+
+      <div v-else class="next-ball" :style="{
         backgroundColor: BALL_COLORS[nextLevel],
-        width: `${getBallRadius(nextLevel) * 2}px`,
-        height: `${getBallRadius(nextLevel) * 2}px`,
+        width: `${BALL_SIZES[nextLevel]}px`,
+        height: `${BALL_SIZES[nextLevel]}px`,
       }"></div>
     </div>
   </div>
@@ -394,10 +430,10 @@ function addBall(event) {
 
 .preview-ball {
   position: absolute;
-  border-radius: 50%;
   transform: translateX(-50%);
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.8;
+  object-fit: contain;
 }
 
 .side-panel {
@@ -416,7 +452,6 @@ function addBall(event) {
 }
 
 .next-ball {
-  border-radius: 50%;
   margin-top: 12px;
 }
 
