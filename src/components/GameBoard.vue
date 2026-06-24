@@ -271,7 +271,7 @@ onMounted(() => {
       const ballA = pair.bodyA;
       const ballB = pair.bodyB;
       // 這段用來關閉合成
-      const ENABLE_MERGE = false;
+      // const ENABLE_MERGE = false;
       // 只有兩顆都有 level，且 level 相同時才合成　 標記正在合成中
       if (
         ballA.level &&
@@ -281,7 +281,7 @@ onMounted(() => {
         !ballB.isMerging
       ) {
         // 這段用來關閉合成
-        if (!ENABLE_MERGE) return;
+        // if (!ENABLE_MERGE) return;
         ballA.isMerging = true;
         ballB.isMerging = true;
 
@@ -296,7 +296,7 @@ onMounted(() => {
         if (newLevel > MAX_LEVEL) return;
 
         // 合成成功加分
-        score.value += newLevel * 10;
+        emit("update-score", props.score + newLevel * 10);
 
         // 移除原本兩顆球
         Composite.remove(engine.world, ballA);
@@ -420,8 +420,6 @@ function addBall(event) {
 </template>
 
 <style scoped>
-
-
 .game-board {
   position: relative;
   width: 480px;
