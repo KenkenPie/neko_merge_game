@@ -593,39 +593,44 @@ const x = (event.clientX - rect.left) * scaleX;
     transform: translate(-50%, -50%) scale(1.6);
   }
 }
-
 /* rwd below */
 
 @media (max-width: 576px) {
-  .game-board {
-    transform: scale(0.75);
-    transform-origin: top center;
-  }
-
-
-  .game-board :deep(canvas) {
-    width: 360px !important;
-    height: 540px !important;
-  }
-
   .game-layout {
     width: 360px;
+    height: 480px; /* 640 * 0.75 */
+    margin: 0 auto;
+  }
+
+  .game-board {
+    width: 480px;
+    height: 640px;
+    transform: scale(0.75);
+    transform-origin: top left;
+  }
+
+  .game-board :deep(canvas) {
+    width: 480px !important;
+    height: 640px !important;
   }
 }
 
 @media (max-width: 390px) {
-  .game-board {
+  .game-layout {
     width: 340px;
-    height: 520px;
+    height: 453px; /* 640 * 0.708 */
+  }
+
+  .game-board {
+    width: 480px;
+    height: 640px;
+    transform: scale(0.708);
+    transform-origin: top left;
   }
 
   .game-board :deep(canvas) {
-    width: 340px !important;
-    height: 520px !important;
-  }
-
-  .game-layout {
-    width: 340px;
+    width: 480px !important;
+    height: 640px !important;
   }
 }
 
