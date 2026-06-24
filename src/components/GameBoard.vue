@@ -345,18 +345,53 @@ defineExpose({
 function isMobile() {
   return window.innerWidth <= 768;
 }
+const isAiming = ref(false);
+
+function getBoardX(event) {
+  const rect = gameBoard.value.getBoundingClientRect();
+  const scaleX = BOARD_WIDTH / rect.width;
+
+  return (event.clientX - rect.left) * scaleX;
+}
+
+function startAim(event) {
+  if (!isMobile()) return;
+  if (isGameOver.value) return;
+
+  isAiming.value = true;
+  previewX.value = getBoardX(event);
+}
+
+function moveAim(event) {
+  if (!isMobile()) return;
+  if (!isAiming.value) return;
+
+  previewX.value = getBoardX(event);
+}
 
 function dropBall(event) {
   if (!isMobile()) return;
+  if (!isAiming.value) return;
+
+  isAiming.value = false;
+  previewX.value = getBoardX(event);
 
   addBallAtX(previewX.value);
-}   
+}
 
 /* =========================
    點擊新增球
    ========================= */
 
 function addBall(event) {
+  // 手機版不要用 click 掉球，避免點擊和放手重複觸發
+  if (isMobile()) return;
+
+  const x = getBoardX(event);
+  addBallAtX(x);
+}
+
+function addBallAtX(x) {
   if (isGameOver.value) return;
   if (!canDropBall) return;
 
@@ -367,28 +402,19 @@ function addBall(event) {
 
   const { Bodies, Composite } = Matter;
 
-  const rect = gameBoard.value.getBoundingClientRect();
-  //   修正rwd版本不準問題
-  const scaleX = BOARD_WIDTH / rect.width;
-
-  const x = (event.clientX - rect.left) * scaleX;
-
-  // 這次掉下來的球等級
   const level = currentLevel.value;
 
-  // 建立球
   const ball = Bodies.circle(x, 40, getBallRadius(level), {
     restitution: 0.45,
     friction: 0.03,
     level,
     render: getBallRender(level),
   });
+
   ball.createdAt = Date.now();
 
-  // 把球加入世界
   Composite.add(engine.world, ball);
 
-  // 更新目前球與下一顆球
   currentLevel.value = nextLevel.value;
   nextLevel.value = getRandomLevel();
   emit("update-next-level", nextLevel.value);
@@ -471,6 +497,7 @@ function addBall(event) {
   border-radius: 16px;
   overflow: hidden;
   background: #ffffff;
+  touch-action: none;
 }
 
 .game-layout {
