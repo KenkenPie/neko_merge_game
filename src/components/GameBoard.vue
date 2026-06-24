@@ -31,8 +31,25 @@ const MAX_LEVEL = 10;
 const BOARD_WIDTH = 480;
 const BOARD_HEIGHT = 640;
 
-// LV1 球的基礎大小
-const BALL_SIZE = 40;
+// 各等級球的直徑尺寸，對應 Figma 圖片尺寸
+const BALL_SIZES = {
+  1: 40,
+  2: 52,
+  3: 64,
+  4: 76,
+  5: 88,
+  6: 100,
+  7: 112,
+  8: 124,
+  9: 136,
+  10: 148,
+};
+
+// 依照等級計算球半徑
+
+function getBallRadius(level) {
+  return BALL_SIZES[level] / 2;
+}
 
 // 測試lv1球改圖片
 const BALL_IMAGES = {
@@ -71,10 +88,7 @@ function movePreview(event) {
    工具函式
    ========================= */
 
-// 依照等級計算球半徑
-function getBallRadius(level) {
-  return BALL_SIZE / 2 + (level - 1) * 10;
-}
+
 
 // 隨機產生 LV1～LV3 的球
 function getRandomLevel() {
