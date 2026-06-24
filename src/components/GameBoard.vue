@@ -1,4 +1,7 @@
 <script setup>
+let canDropBall = true;
+const DROP_COOLDOWN = 300;
+
 import { onMounted, ref } from "vue";
 import Matter from "matter-js";
 import lv1Img from "../img/gameIcon/lv1.png";
@@ -110,7 +113,7 @@ function movePreview(event) {
 
 // 隨機產生 LV1～LV3 的球
 function getRandomLevel() {
-  return Math.floor(Math.random() * 10) + 1;
+  return Math.floor(Math.random() * 4) + 1;
 }
 
 // 根據球的等級決定要使用圖片還是顏色
@@ -262,7 +265,7 @@ onMounted(() => {
     event.pairs.forEach((pair) => {
       const ballA = pair.bodyA;
       const ballB = pair.bodyB;
-      這段用來關閉合成
+      // 這段用來關閉合成
       // const ENABLE_MERGE = false;
       // 只有兩顆都有 level，且 level 相同時才合成　 標記正在合成中
       if (
@@ -272,8 +275,8 @@ onMounted(() => {
         !ballA.isMerging &&
         !ballB.isMerging
       ) {
-        這段用來關閉合成
-        // if (!ENABLE_MERGE) return;
+        // 這段用來關閉合成
+        // // if (!ENABLE_MERGE) return;
         ballA.isMerging = true;
         ballB.isMerging = true;
 
@@ -324,6 +327,13 @@ function restartGame() {
 
 function addBall(event) {
   if (isGameOver.value) return;
+  if (!canDropBall) return;
+
+  canDropBall = false;
+  setTimeout(() => {
+    canDropBall = true;
+  }, DROP_COOLDOWN);
+
   const { Bodies, Composite } = Matter;
 
   const rect = gameBoard.value.getBoundingClientRect();
@@ -358,6 +368,9 @@ function addBall(event) {
     <div class="game-wrapper">
       <div ref="gameBoard" class="game-board" @mousemove="movePreview" @click="addBall">
         <div class="game-over-line"></div>
+        <div class="aim-line" :style="{
+          left: `${previewX}px`,
+        }"></div> 
         <img v-if="getBallImage(currentLevel)" class="preview-ball" :src="getBallImage(currentLevel)" :style="{
           left: `${previewX}px`,
           width: `${BALL_SIZES[currentLevel]}px`,
@@ -434,6 +447,17 @@ function addBall(event) {
   pointer-events: none;
   opacity: 0.8;
   object-fit: contain;
+}
+
+.aim-line {
+  position: absolute;
+  top: 84px;
+  bottom: 0;
+  width: 2px;
+  background:aliceblue;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 10;
 }
 
 .side-panel {
