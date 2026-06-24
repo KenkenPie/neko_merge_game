@@ -1,6 +1,7 @@
 <script setup>
 let canDropBall = true;
 const DROP_COOLDOWN = 300;
+const mergeEffects = ref([]);
 
 import { onMounted, ref } from "vue";
 import Matter from "matter-js";
@@ -108,14 +109,26 @@ function movePreview(event) {
   previewX.value = event.clientX - rect.left;
 }
 
-/* =========================
+// 合成特效
+
+function addMergeEffect(x, y) {
+  const id = Date.now() + Math.random();
+
+  mergeEffects.value.push({ id, x, y });
+
+  setTimeout(() => {
+    mergeEffects.value = mergeEffects.value.filter((item) => item.id !== id);
+  }, 400);
+}
+
+  /* =========================
    工具函式
    ========================= */
 
-// 隨機產生 LV1～LV3 的球
-function getRandomLevel() {
-  return Math.floor(Math.random() * 4) + 1;
-}
+  // 隨機產生 LV1～LV3 的球
+  function getRandomLevel() {
+    return Math.floor(Math.random() * 4) + 1;
+  };
 
 // 根據球的等級決定要使用圖片還是顏色
 // 如果該等級有對應圖片，就使用圖片(texture)
@@ -283,6 +296,7 @@ onMounted(() => {
         // 新球出現在兩顆球的中間
         const newX = (ballA.position.x + ballB.position.x) / 2;
         const newY = (ballA.position.y + ballB.position.y) / 2;
+        addMergeEffect(newX, newY);
 
         // 新球等級 +1
         const newLevel = ballA.level + 1;
@@ -403,7 +417,17 @@ function addBall(event) {
             height: `${BALL_SIZES[currentLevel]}px`,
           }"
         ></div>
-
+        <div
+          v-for="effect in mergeEffects"
+          :key="effect.id"
+          class="merge-effect"
+          :style="{
+            left: `${effect.x}px`,
+            top: `${effect.y}px`,
+          }"
+        >
+          POP!
+        </div>
         <div v-if="isGameOver" class="game-over-mask">
           <div class="game-over-panel">
             <h2>GAME OVER</h2>
@@ -524,4 +548,81 @@ function addBall(event) {
   height: 100% !important;
   display: block;
 }  */
+
+
+/* 合成特效 */
+.merge-effect {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 200;
+
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255, 211, 120, 0.85);
+  border: 3px solid #fff;
+  color: #7a4b22;
+  font-size: 14px;
+  font-weight: 900;
+
+  animation: merge-pop 0.4s ease-out forwards;
+}
+
+@keyframes merge-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.6);
+  }
+}
+
+/* rwd below */
+
+@media (max-width: 576px) {
+  .game-board {
+    width: 360px;
+    height: 540px;
+  }
+
+  .game-board :deep(canvas) {
+    width: 360px !important;
+    height: 540px !important;
+  }
+
+  .game-layout {
+    width: 360px;
+  }
+}
+
+@media (max-width: 390px) {
+  .game-board {
+    width: 340px;
+    height: 520px;
+  }
+
+  .game-board :deep(canvas) {
+    width: 340px !important;
+    height: 520px !important;
+  }
+
+  .game-layout {
+    width: 340px;
+  }
+}
+
 </style>

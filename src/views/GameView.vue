@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import GameBoard from "../components/GameBoard.vue";
 import ruleImg from "../img/rule.png"; // 你的說明圖路徑自己改
 
@@ -13,7 +13,10 @@ import lv7Img from "../img/gameIcon/lv7.png";
 import lv8Img from "../img/gameIcon/lv8.png";
 import lv9Img from "../img/gameIcon/lv9.png";
 import lv10Img from "../img/gameIcon/lv10.png";
-
+const bestScore = ref(0);
+onMounted(() => {
+  bestScore.value = Number(localStorage.getItem("neko-best-score")) || 0;
+});
 const BALL_IMAGES = {
   1: lv1Img,
   2: lv2Img,
@@ -37,6 +40,11 @@ const updateNextLevel = (level) => {
 };
 const updateScore = (newScore) => {
   score.value = newScore;
+
+  if (newScore > bestScore.value) {
+    bestScore.value = newScore;
+    localStorage.setItem("neko-best-score", newScore);
+  }
 };
 
 const handleRestart = () => {
@@ -50,7 +58,10 @@ const handleRestart = () => {
       <div class="top-bar">
         <button class="help-btn" @click="showRule = true">?</button>
         <button class="restart" @click="handleRestart">↺</button>
-        <div class="score-box">分數：{{ score }}</div>
+        <div class="score-area">
+          <div class="score-box">分數：{{ score }}</div>
+          <div class="best-score">最高分：{{ bestScore }}</div>
+        </div>
 
         <div class="next-box">
           <p>Next</p>
@@ -81,10 +92,18 @@ const handleRestart = () => {
 <style scoped>
 .game-page {
   min-height: 100vh;
+
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15)),
+    url("../img/background.png");
+
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+
   display: flex;
   justify-content: center;
 }
-
 .game-shell {
   width: 624px;
   display: flex;
@@ -171,5 +190,61 @@ const handleRestart = () => {
   background: #fff;
   font-size: 24px;
   cursor: pointer;
+}
+
+.score-area {
+  text-align: center;
+}
+
+.score-box {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.best-score {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #7d5a50;
+}
+
+/* rwd below */
+
+@media (max-width: 768px) {
+  .game-shell {
+    width: 100%;
+  }
+
+  .top-bar {
+    width: 480px;
+    max-width: calc(100vw - 32px);
+  }
+}
+
+@media (max-width: 576px) {
+  .game-page {
+    overflow-x: hidden;
+  }
+
+  .top-bar {
+    width: 360px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .score-box {
+    font-size: 22px;
+  }
+
+  .best-score {
+    font-size: 12px;
+  }
+
+  .help-btn,
+  .restart {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
 }
 </style>
