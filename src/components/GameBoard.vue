@@ -1,5 +1,4 @@
 <script setup>
-
 let canDropBall = true;
 const DROP_COOLDOWN = 300;
 
@@ -16,7 +15,6 @@ import lv8Img from "../img/gameIcon/lv8.png";
 import lv9Img from "../img/gameIcon/lv9.png";
 import lv10Img from "../img/gameIcon/lv10.png";
 
-
 /* =========================
    Vue 狀態資料
    ========================= */
@@ -30,9 +28,9 @@ const nextLevel = ref(1);
 // 分數
 const props = defineProps({
   score: Number,
-})
+});
 
-const emit = defineEmits(['update-score'])
+const emit = defineEmits(["update-score", "update-next-level"]);
 
 /* =========================
    遊戲基本設定
@@ -114,8 +112,6 @@ function movePreview(event) {
    工具函式
    ========================= */
 
-
-
 // 隨機產生 LV1～LV3 的球
 function getRandomLevel() {
   return Math.floor(Math.random() * 4) + 1;
@@ -135,7 +131,6 @@ function getBallRender(level) {
       },
     };
   }
-
 
   return {
     fillStyle: BALL_COLORS[level],
@@ -326,6 +321,11 @@ function restartGame() {
   console.log("restart clicked");
   window.location.reload();
 }
+
+defineExpose({
+  restartGame,
+});
+
 /* =========================
    點擊新增球
    ========================= */
@@ -362,29 +362,47 @@ function addBall(event) {
   // 更新目前球與下一顆球
   currentLevel.value = nextLevel.value;
   nextLevel.value = getRandomLevel();
+  emit("update-next-level", nextLevel.value);
 }
 </script>
 <template>
-  <div class="score-box">分數：{{ score }}</div>
+  <!-- <div class="score-box">分數：{{ score }}</div> -->
   <div class="game-layout">
     <div class="game-wrapper">
-      <div ref="gameBoard" class="game-board" @mousemove="movePreview" @click="addBall">
+      <div
+        ref="gameBoard"
+        class="game-board"
+        @mousemove="movePreview"
+        @click="addBall"
+      >
         <div class="game-over-line"></div>
-        <div class="aim-line" :style="{
-          left: `${previewX}px`,
-        }"></div>
-        <img v-if="getBallImage(currentLevel)" class="preview-ball" :src="getBallImage(currentLevel)" :style="{
-          left: `${previewX}px`,
-          width: `${BALL_SIZES[currentLevel]}px`,
-          height: `${BALL_SIZES[currentLevel]}px`,
-        }" />
+        <div
+          class="aim-line"
+          :style="{
+            left: `${previewX}px`,
+          }"
+        ></div>
+        <img
+          v-if="getBallImage(currentLevel)"
+          class="preview-ball"
+          :src="getBallImage(currentLevel)"
+          :style="{
+            left: `${previewX}px`,
+            width: `${BALL_SIZES[currentLevel]}px`,
+            height: `${BALL_SIZES[currentLevel]}px`,
+          }"
+        />
 
-        <div v-else class="preview-ball" :style="{
-          left: `${previewX}px`,
-          backgroundColor: BALL_COLORS[currentLevel],
-          width: `${BALL_SIZES[currentLevel]}px`,
-          height: `${BALL_SIZES[currentLevel]}px`,
-        }"></div>
+        <div
+          v-else
+          class="preview-ball"
+          :style="{
+            left: `${previewX}px`,
+            backgroundColor: BALL_COLORS[currentLevel],
+            width: `${BALL_SIZES[currentLevel]}px`,
+            height: `${BALL_SIZES[currentLevel]}px`,
+          }"
+        ></div>
 
         <div v-if="isGameOver" class="game-over-mask">
           <div class="game-over-panel">
@@ -396,26 +414,8 @@ function addBall(event) {
             </button>
           </div>
         </div>
-
       </div>
     </div>
-
-    <div class="next-box">
-      <p>Next:</p>
-
-      <img v-if="getBallImage(nextLevel)" class="next-ball" :src="getBallImage(nextLevel)" :style="{
-        width: `${BALL_SIZES[nextLevel]}px`,
-        height: `${BALL_SIZES[nextLevel]}px`,
-      }" />
-
-      <div v-else class="next-ball" :style="{
-        backgroundColor: BALL_COLORS[nextLevel],
-        width: `${BALL_SIZES[nextLevel]}px`,
-        height: `${BALL_SIZES[nextLevel]}px`,
-      }"></div>
-    </div>
-
-
   </div>
 </template>
 
@@ -432,10 +432,9 @@ function addBall(event) {
 }
 
 .game-layout {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 24px;
+  position: relative;
+  width: fit-content;
+  margin: 0 auto;
 }
 
 .game-wrapper {
@@ -478,21 +477,6 @@ function addBall(event) {
 
 .side-panel {
   width: 120px;
-}
-
-.next-box {
-  width: 120px;
-  min-height: 120px;
-  border: 1px solid #333;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px;
-}
-
-.next-ball {
-  margin-top: 12px;
 }
 
 .game-over-mask {
