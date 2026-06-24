@@ -1,4 +1,5 @@
 <script setup>
+
 let canDropBall = true;
 const DROP_COOLDOWN = 300;
 
