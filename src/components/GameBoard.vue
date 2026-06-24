@@ -28,7 +28,11 @@ const currentLevel = ref(1);
 const nextLevel = ref(1);
 
 // 分數
-const score = ref(0);
+const props = defineProps({
+  score: Number,
+})
+
+const emit = defineEmits(['update-score'])
 
 /* =========================
    遊戲基本設定
@@ -267,7 +271,7 @@ onMounted(() => {
       const ballA = pair.bodyA;
       const ballB = pair.bodyB;
       // 這段用來關閉合成
-      // const ENABLE_MERGE = false;
+      const ENABLE_MERGE = false;
       // 只有兩顆都有 level，且 level 相同時才合成　 標記正在合成中
       if (
         ballA.level &&
@@ -277,7 +281,7 @@ onMounted(() => {
         !ballB.isMerging
       ) {
         // 這段用來關閉合成
-        // if (!ENABLE_MERGE) return;
+        if (!ENABLE_MERGE) return;
         ballA.isMerging = true;
         ballB.isMerging = true;
 
@@ -362,9 +366,6 @@ function addBall(event) {
 </script>
 <template>
   <div class="score-box">分數：{{ score }}</div>
-  <button class="restart" @click="restartGame">
-    {{ isGameOver ? "重新開始" : "重置遊戲" }}
-  </button>
   <div class="game-layout">
     <div class="game-wrapper">
       <div ref="gameBoard" class="game-board" @mousemove="movePreview" @click="addBall">
@@ -419,6 +420,8 @@ function addBall(event) {
 </template>
 
 <style scoped>
+
+
 .game-board {
   position: relative;
   width: 480px;
