@@ -4,9 +4,10 @@ import GameBoard from '../components/GameBoard.vue'
 
 <template>
   <div class="game-page">
-    <h1>喵喵喵喵喵</h1>
+    <h1>喵喵喵喵</h1>
 
-    <GameBoard />
+      <GameBoard />
+      
   </div>
 </template>
 

@@ -277,7 +277,7 @@ onMounted(() => {
         !ballB.isMerging
       ) {
         // 這段用來關閉合成
-        // // if (!ENABLE_MERGE) return;
+        // if (!ENABLE_MERGE) return;
         ballA.isMerging = true;
         ballB.isMerging = true;
 
@@ -371,7 +371,7 @@ function addBall(event) {
         <div class="game-over-line"></div>
         <div class="aim-line" :style="{
           left: `${previewX}px`,
-        }"></div> 
+        }"></div>
         <img v-if="getBallImage(currentLevel)" class="preview-ball" :src="getBallImage(currentLevel)" :style="{
           left: `${previewX}px`,
           width: `${BALL_SIZES[currentLevel]}px`,
@@ -384,6 +384,18 @@ function addBall(event) {
           width: `${BALL_SIZES[currentLevel]}px`,
           height: `${BALL_SIZES[currentLevel]}px`,
         }"></div>
+
+        <div v-if="isGameOver" class="game-over-mask">
+          <div class="game-over-panel">
+            <h2>GAME OVER</h2>
+            <p>分數：{{ score }}</p>
+
+            <button type="button" class="restart-btn" @click.stop="restartGame">
+              再玩一次
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -401,6 +413,8 @@ function addBall(event) {
         height: `${BALL_SIZES[nextLevel]}px`,
       }"></div>
     </div>
+
+
   </div>
 </template>
 
@@ -455,7 +469,7 @@ function addBall(event) {
   top: 84px;
   bottom: 0;
   width: 2px;
-  background:aliceblue;
+  background: aliceblue;
   transform: translateX(-50%);
   pointer-events: none;
   z-index: 10;
@@ -478,6 +492,44 @@ function addBall(event) {
 
 .next-ball {
   margin-top: 12px;
+}
+
+.game-over-mask {
+  position: absolute;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.5);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 999;
+}
+
+.game-over-panel {
+  background: white;
+  padding: 24px;
+  border-radius: 20px;
+  text-align: center;
+  min-width: 220px;
+}
+
+.game-over-panel h2 {
+  margin-bottom: 12px;
+}
+
+.game-over-panel p {
+  margin-bottom: 16px;
+}
+
+.restart-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: #ffb347;
+  font-size: 16px;
 }
 
 /* 
