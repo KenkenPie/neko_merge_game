@@ -1,7 +1,8 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import Matter from "matter-js";
-
+import lv1Img from "../img/gameIcon/lv1.png";
+import lv2Img from "../img/gameIcon/lv2.png";
 /* =========================
    Vue 狀態資料
    ========================= */
@@ -32,6 +33,12 @@ const BOARD_HEIGHT = 640;
 
 // LV1 球的基礎大小
 const BALL_SIZE = 40;
+
+// 測試lv1球改圖片
+const BALL_IMAGES = {
+  1: lv1Img,
+  2: lv2Img,
+};
 
 // 不同等級的球顏色
 const BALL_COLORS = {
@@ -73,6 +80,27 @@ function getBallRadius(level) {
 function getRandomLevel() {
   return Math.floor(Math.random() * 4) + 1;
 }
+
+// 根據球的等級決定要使用圖片還是顏色
+// 如果該等級有對應圖片，就使用圖片(texture)
+// 如果沒有圖片，就使用原本的顏色圓球
+
+function getBallRender(level) {
+  if (BALL_IMAGES[level]) {
+    return {
+      sprite: {
+        texture: BALL_IMAGES[level],
+        xScale: 1,
+        yScale: 1,
+      },
+    };
+  }
+
+  return {
+    fillStyle: BALL_COLORS[level],
+  };
+}
+
 
 /* =========================
    Matter.js 物理引擎變數
@@ -232,14 +260,12 @@ onMounted(() => {
           level: newLevel,
           restitution: 0.2,
           friction: 0.05,
-          render: {
-            fillStyle: BALL_COLORS[newLevel],
-          },
+          render: getBallRender(newLevel),
         });
 
-        // 加入新球
-        Composite.add(engine.world, newBall);
-      }
+    // 加入新球
+    Composite.add(engine.world, newBall);
+  }
     });
   });
 });
@@ -272,9 +298,7 @@ function addBall(event) {
     restitution: 0.2,
     friction: 0.05,
     level,
-    render: {
-      fillStyle: BALL_COLORS[level],
-    },
+    render: getBallRender(level),
   });
   ball.createdAt = Date.now();
 
@@ -293,36 +317,25 @@ function addBall(event) {
   </button>
   <div class="game-layout">
     <div class="game-wrapper">
-      <div
-        ref="gameBoard"
-        class="game-board"
-        @mousemove="movePreview"
-        @click="addBall"
-      >
+      <div ref="gameBoard" class="game-board" @mousemove="movePreview" @click="addBall">
         <div class="game-over-line"></div>
-        <div
-          class="preview-ball"
-          :style="{
-            left: `${previewX}px`,
-            backgroundColor: BALL_COLORS[currentLevel],
-            width: `${getBallRadius(currentLevel) * 2}px`,
-            height: `${getBallRadius(currentLevel) * 2}px`,
-          }"
-        ></div>
+        <div class="preview-ball" :style="{
+          left: `${previewX}px`,
+          backgroundColor: BALL_COLORS[currentLevel],
+          width: `${getBallRadius(currentLevel) * 2}px`,
+          height: `${getBallRadius(currentLevel) * 2}px`,
+        }"></div>
       </div>
     </div>
 
     <div class="next-box">
       <p>Next:</p>
 
-      <div
-        class="next-ball"
-        :style="{
-          backgroundColor: BALL_COLORS[nextLevel],
-          width: `${getBallRadius(nextLevel) * 2}px`,
-          height: `${getBallRadius(nextLevel) * 2}px`,
-        }"
-      ></div>
+      <div class="next-ball" :style="{
+        backgroundColor: BALL_COLORS[nextLevel],
+        width: `${getBallRadius(nextLevel) * 2}px`,
+        height: `${getBallRadius(nextLevel) * 2}px`,
+      }"></div>
     </div>
   </div>
 </template>
@@ -338,6 +351,7 @@ function addBall(event) {
   overflow: hidden;
   background: #ffffff;
 }
+
 .game-layout {
   display: flex;
   justify-content: center;
@@ -391,6 +405,7 @@ function addBall(event) {
   border-radius: 50%;
   margin-top: 12px;
 }
+
 /* 
 /* 🎯 關鍵修正：強制讓 Matter.js 產生的 canvas 填滿 600x800 的格子 */
 /* .game-board :deep(canvas) {
