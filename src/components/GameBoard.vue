@@ -314,8 +314,8 @@ onMounted(() => {
         // 建立合成後的新球
         const newBall = Bodies.circle(newX, newY, getBallRadius(newLevel), {
           level: newLevel,
-          restitution: 0.2,
-          friction: 0.05,
+          restitution: 0.45,
+          friction: 0.03,
           render: getBallRender(newLevel),
         });
 
@@ -366,8 +366,8 @@ const x = (event.clientX - rect.left) * scaleX;
 
   // 建立球
   const ball = Bodies.circle(x, 40, getBallRadius(level), {
-    restitution: 0.2,
-    friction: 0.05,
+    restitution: 0.45,
+    friction: 0.03,
     level,
     render: getBallRender(level),
   });
