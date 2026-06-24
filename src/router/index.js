@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import GameView from '../views/GameView.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
@@ -12,4 +12,4 @@ const router = createRouter({
   ],
 })
 
-export default router
+export default router 
