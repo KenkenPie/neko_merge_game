@@ -13,6 +13,9 @@ import lv7Img from "../img/gameIcon/lv7.png";
 import lv8Img from "../img/gameIcon/lv8.png";
 import lv9Img from "../img/gameIcon/lv9.png";
 import lv10Img from "../img/gameIcon/lv10.png";
+import lv11Img from "../img/gameIcon/lv11.png";
+import lv12Img from "../img/gameIcon/lv12.png";
+
 const bestScore = ref(0);
 onMounted(() => {
   bestScore.value = Number(localStorage.getItem("neko-best-score")) || 0;
@@ -179,7 +182,7 @@ margin:0;
 
 .rule-modal {
   position: relative;
-  max-width: 420px;
+  max-width: 600px;
   width: 80%;
 }
 
@@ -214,7 +217,7 @@ margin:0;
 
 .best-score {
   margin-top: 4px;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   color: #7d5a50;
 }

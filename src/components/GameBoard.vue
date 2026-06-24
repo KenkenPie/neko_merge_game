@@ -15,6 +15,8 @@ import lv7Img from "../img/gameIcon/lv7.png";
 import lv8Img from "../img/gameIcon/lv8.png";
 import lv9Img from "../img/gameIcon/lv9.png";
 import lv10Img from "../img/gameIcon/lv10.png";
+import lv11Img from "../img/gameIcon/lv11.png";
+import lv12Img from "../img/gameIcon/lv12.png";
 
 /* =========================
    Vue 狀態資料
@@ -45,7 +47,7 @@ const GAME_OVER_LINE = 140;
 const MAX_LEVEL = 10;
 
 // 遊戲區尺寸
-const BOARD_WIDTH = 480;
+const BOARD_WIDTH = 420;
 const BOARD_HEIGHT = 640;
 
 // 各等級球的直徑尺寸，對應 Figma 圖片尺寸
@@ -57,11 +59,12 @@ const BALL_SIZES = {
   5: 104,
   6: 124,
   7: 140,
-  8: 150,
-  9: 164,
+  8: 156,
+  9: 170,
   10: 184,
+  11: 200,
+  12: 220,
 };
-
 // 依照等級計算球半徑
 
 function getBallRadius(level) {
@@ -127,7 +130,7 @@ function addMergeEffect(x, y) {
 
 // 隨機產生 LV1～LV3 的球
 function getRandomLevel() {
-  return Math.floor(Math.random() * 3) + 1;
+  return Math.floor(Math.random() * 4) + 1;
 }
 
 // 根據球的等級決定要使用圖片還是顏色
@@ -315,7 +318,8 @@ onMounted(() => {
         const newBall = Bodies.circle(newX, newY, getBallRadius(newLevel), {
           level: newLevel,
           restitution: 0.25,
-          friction: 0.03,
+          friction: 0.5,
+          frictionStatic: 0.5,
           render: getBallRender(newLevel),
         });
 
@@ -406,7 +410,8 @@ function addBallAtX(x) {
 
   const ball = Bodies.circle(x, 40, getBallRadius(level), {
     restitution: 0.25,
-    friction: 0.03,
+    friction: 0.5,
+    frictionStatic: 0.5,
     level,
     render: getBallRender(level),
   });
@@ -490,7 +495,7 @@ function addBallAtX(x) {
 <style scoped>
 .game-board {
   position: relative;
-  width: 480px;
+  width: 420px;
   height: 640px;
   box-sizing: content-box;
   border: 4px solid #333;
@@ -531,6 +536,7 @@ function addBallAtX(x) {
   pointer-events: none;
   opacity: 0.8;
   object-fit: contain;
+  top:30px;
 }
 
 .aim-line {
