@@ -1,10 +1,7 @@
 <script setup>
-let canDropBall = true;
-const DROP_COOLDOWN = 300;
-const mergeEffects = ref([]);
-
 import { onMounted, ref } from "vue";
 import Matter from "matter-js";
+
 import lv1Img from "../img/gameIcon/lv1.png";
 import lv2Img from "../img/gameIcon/lv2.png";
 import lv3Img from "../img/gameIcon/lv3.png";
@@ -19,38 +16,42 @@ import lv11Img from "../img/gameIcon/lv11.png";
 import lv12Img from "../img/gameIcon/lv12.png";
 
 /* =========================
-   Vue 狀態資料
+   基本狀態
    ========================= */
 
-// 目前準備掉下來的球等級
+let canDropBall = true;
+
+const DROP_COOLDOWN = 300;
+
+const mergeEffects = ref([]);
 const currentLevel = ref(1);
-
-// 右邊預告：下一顆球的等級
 const nextLevel = ref(1);
+const isGameOver = ref(false);
+const isAiming = ref(false);
 
-// 分數
 const props = defineProps({
-  score: Number,
+  score: {
+    type: Number,
+    default: 0,
+  },
 });
 
-const emit = defineEmits(["update-score", "update-next-level"]);
+const emit = defineEmits([
+  "update-score",
+  "update-next-level",
+]);
 
 /* =========================
-   遊戲基本設定
+   遊戲設定
    ========================= */
 
-//*死亡線
-const isGameOver = ref(false);
 const GAME_OVER_LINE = 140;
 
-// 最大等級，超過 LV12 就不再合成
 const MAX_LEVEL = 12;
 
-// 遊戲區尺寸
 const BOARD_WIDTH = 420;
 const BOARD_HEIGHT = 640;
 
-// 各等級球的直徑尺寸，對應 Figma 圖片尺寸
 const BALL_SIZES = {
   1: 40,
   2: 52,
@@ -66,17 +67,6 @@ const BALL_SIZES = {
   12: 220,
 };
 
-// 增加球的重量
-function getBallDensity(level) {
-  return 0.001 + level * 0.001;
-}
-// 依照等級計算球半徑
-
-function getBallRadius(level) {
-  return BALL_SIZES[level] * 0.46;
-}
-
-// 測試lv1球改圖片
 const BALL_IMAGES = {
   1: lv1Img,
   2: lv2Img,
@@ -88,116 +78,217 @@ const BALL_IMAGES = {
   8: lv8Img,
   9: lv9Img,
   10: lv10Img,
+  11: lv11Img,
+  12: lv12Img,
 };
 
-// 不同等級的球顏色
-  
 /* =========================
-   預覽球設定
+   Matter.js 變數
    ========================= */
 
-// 預覽球的 X 座標，預設在中間
-const previewX = ref(BOARD_WIDTH / 2);
+const gameBoard = ref(null);
 
-// 滑鼠移動時，讓預覽球跟著滑鼠左右移動
-function movePreview(event) {
-  const rect = gameBoard.value.getBoundingClientRect()
-  const scaleX = BOARD_WIDTH / rect.width
-  const x = (event.clientX - rect.left) * scaleX
-
-  previewX.value = clampPreviewX(x)
-}
-// 合成特效
-
-function addMergeEffect(x, y) {
-  const id = Date.now() + Math.random();
-
-  mergeEffects.value.push({ id, x, y });
-
-  setTimeout(() => {
-    mergeEffects.value = mergeEffects.value.filter((item) => item.id !== id);
-  }, 400);
-}
+let engine;
+let render;
+let runner;
 
 /* =========================
-   工具函式
+   球的設定
    ========================= */
 
-// 隨機產生 LV1～LV3 的球
-function getRandomLevel() {
-  return Math.floor(Math.random() * 4) + 1;
+// 圖片比碰撞體稍微大一點，減少視覺縫隙
+function getBallRadius(level) {
+  return BALL_SIZES[level] * 0.46;
 }
 
-// 讓球不要超出牆壁
-
-function clampPreviewX(x, level = currentLevel.value) {
-  const radius = getBallRadius(level);
-
-  return Math.max(
-    radius,
-    Math.min(BOARD_WIDTH - radius, x)
-  );
+// 等級越高，密度越高
+function getBallDensity(level) {
+  return 0.001 + level * 0.001;
 }
-
-// 根據球的等級決定要使用圖片還是顏色
-// 如果該等級有對應圖片，就使用圖片(texture)
-// 如果沒有圖片，就使用原本的顏色圓球
 
 function getBallRender(level) {
-  if (BALL_IMAGES[level]) {
-    return {
-      sprite: {
-        texture: BALL_IMAGES[level],
-        xScale: 1,
-        yScale: 1,
-      },
-    }
-  }
-
-
-
   return {
-    fillStyle: BALL_COLORS[level],
+    sprite: {
+      texture: BALL_IMAGES[level],
+      xScale: 1,
+      yScale: 1,
+    },
   };
 }
 
 function getBallImage(level) {
-  return BALL_IMAGES[level] || null;
+  return BALL_IMAGES[level];
+}
+
+// 隨機產生 LV1～LV4
+function getRandomLevel() {
+  return Math.floor(Math.random() * 4) + 1;
 }
 
 /* =========================
-   Matter.js 物理引擎變數
+   Preview 座標
    ========================= */
 
-// 遊戲區 DOM
-const gameBoard = ref(null);
+const previewX = ref(BOARD_WIDTH / 2);
 
-// Matter.js 主要物件
-let engine;
-let render;
-let runner;
+/*
+  使用圖片寬度的一半限制位置。
+
+  原因：
+  碰撞圓半徑只有尺寸的 0.46，
+  但圖片寬度仍接近完整 BALL_SIZES。
+
+  目的：
+  讓畫面上的圖片也不會超出左右牆壁。
+*/
+function clampPreviewX(x, level = currentLevel.value) {
+  const visualRadius = BALL_SIZES[level] / 2;
+
+  return Math.max(
+    visualRadius,
+    Math.min(BOARD_WIDTH - visualRadius, x),
+  );
+}
+
+/*
+  取得 Matter canvas 的實際座標。
+
+  手機版 game-board 有 scale，
+  所以不能直接使用 event.clientX - rect.left。
+*/
+function getBoardX(event) {
+  const canvas =
+    gameBoard.value?.querySelector("canvas");
+
+  const targetElement =
+    canvas || gameBoard.value;
+
+  const rect =
+    targetElement.getBoundingClientRect();
+
+  const scaleX =
+    BOARD_WIDTH / rect.width;
+
+  return (
+    (event.clientX - rect.left) * scaleX
+  );
+}
+
+function movePreview(event) {
+  if (isMobile()) return;
+
+  previewX.value = clampPreviewX(
+    getBoardX(event),
+  );
+}
+
+/* =========================
+   手機瞄準
+   ========================= */
+
+function isMobile() {
+  return window.innerWidth <= 768;
+}
+
+function startAim(event) {
+  if (!isMobile()) return;
+  if (isGameOver.value) return;
+
+  isAiming.value = true;
+
+  previewX.value = clampPreviewX(
+    getBoardX(event),
+  );
+
+  /*
+    手指移出遊戲框時，
+    仍然可以接收到 pointerup。
+  */
+  event.currentTarget?.setPointerCapture?.(
+    event.pointerId,
+  );
+}
+
+function moveAim(event) {
+  if (!isMobile()) return;
+  if (!isAiming.value) return;
+
+  previewX.value = clampPreviewX(
+    getBoardX(event),
+  );
+}
+
+function dropBall(event) {
+  if (!isMobile()) return;
+  if (!isAiming.value) return;
+
+  isAiming.value = false;
+
+  previewX.value = clampPreviewX(
+    getBoardX(event),
+  );
+
+  event.currentTarget?.releasePointerCapture?.(
+    event.pointerId,
+  );
+
+  addBallAtX(previewX.value);
+}
+
+function cancelAim() {
+  isAiming.value = false;
+}
+
+/* =========================
+   合成特效
+   ========================= */
+
+function addMergeEffect(x, y) {
+  const id = Date.now() + Math.random();
+
+  mergeEffects.value.push({
+    id,
+    x,
+    y,
+  });
+
+  setTimeout(() => {
+    mergeEffects.value =
+      mergeEffects.value.filter(
+        (item) => item.id !== id,
+      );
+  }, 220);
+}
 
 /* =========================
    初始化遊戲
    ========================= */
 
 onMounted(() => {
-  // 一開始先抽目前球和下一顆球
   currentLevel.value = getRandomLevel();
   nextLevel.value = getRandomLevel();
 
-  const { Engine, Render, Runner, Bodies, Composite, Events } = Matter;
+  const {
+    Engine,
+    Render,
+    Runner,
+    Bodies,
+    Composite,
+    Events,
+  } = Matter;
 
-  // 建立物理引擎
   engine = Engine.create();
+
+  /*
+    增加碰撞計算精度，
+    減少球堆疊時的抖動。
+  */
   engine.positionIterations = 12;
   engine.velocityIterations = 10;
-  engine.constraintIterations = 4;
 
-  // 建立 Matter.js 畫布
   render = Render.create({
     element: gameBoard.value,
-    engine: engine,
+    engine,
     options: {
       width: BOARD_WIDTH,
       height: BOARD_HEIGHT,
@@ -207,7 +298,7 @@ onMounted(() => {
   });
 
   /* =========================
-     建立牆壁和地板
+     地板與牆壁
      ========================= */
 
   const ground = Bodies.rectangle(
@@ -217,333 +308,493 @@ onMounted(() => {
     20,
     {
       isStatic: true,
+
       friction: 1,
       frictionStatic: 1,
       restitution: 0,
+
       render: {
         visible: false,
       },
     },
   );
 
-  const leftWall = Bodies.rectangle(-25, BOARD_HEIGHT / 2, 50, BOARD_HEIGHT, {
-    isStatic: true,
-    friction: 0,
-    frictionStatic: 0,
-    restitution: 0,
-    render: { fillStyle: "#333" },
-  });
+  const leftWall = Bodies.rectangle(
+    -25,
+    BOARD_HEIGHT / 2,
+    50,
+    BOARD_HEIGHT,
+    {
+      isStatic: true,
 
-  const rightWall = Bodies.rectangle(BOARD_WIDTH + 25, BOARD_HEIGHT / 2, 50, BOARD_HEIGHT, {
-    isStatic: true,
-    friction: 0,
-    frictionStatic: 0,
-    restitution: 0,
-    render: { fillStyle: "#333" },
-  });
+      /*
+        左右牆壁摩擦設為 0，
+        避免新球貼牆時慢慢掉落。
+      */
+      friction: 0,
+      frictionStatic: 0,
+      restitution: 0,
 
-  // 把牆壁和地板加入物理世界
-  Composite.add(engine.world, [ground, leftWall, rightWall]);
+      render: {
+        visible: false,
+      },
+    },
+  );
 
-  // 開始渲染畫面
+  const rightWall = Bodies.rectangle(
+    BOARD_WIDTH + 25,
+    BOARD_HEIGHT / 2,
+    50,
+    BOARD_HEIGHT,
+    {
+      isStatic: true,
+
+      friction: 0,
+      frictionStatic: 0,
+      restitution: 0,
+
+      render: {
+        visible: false,
+      },
+    },
+  );
+
+  Composite.add(engine.world, [
+    ground,
+    leftWall,
+    rightWall,
+  ]);
+
   Render.run(render);
 
-  // 開始跑物理引擎
   runner = Runner.create();
   Runner.run(runner, engine);
 
   /* =========================
-     GAMEOVER設定
+     減少殘留滑動
      ========================= */
 
-  //      之後建議改成：
-
-  // if (
-  //   ball.position.y - ball.circleRadius <
-  //   GAME_OVER_LINE
-  // )
-
-
-  // 速度減慢之後動ㄥㄥ
   Events.on(engine, "beforeUpdate", () => {
-    Composite.allBodies(engine.world).forEach((body) => {
+    Composite.allBodies(
+      engine.world,
+    ).forEach((body) => {
       if (!body.level) return;
 
-      // 如果這顆重球上一幀被較輕的球推動
+      /*
+        如果較輕的球正在推動重球，
+        清除重球的水平速度。
+
+        保留 y 速度，
+        所以重球仍然可以正常往下掉。
+      */
       if (body.isPushedByLighter) {
         Matter.Body.setVelocity(body, {
           x: 0,
           y: body.velocity.y,
         });
 
-        Matter.Body.setAngularVelocity(body, 0);
+        Matter.Body.setAngularVelocity(
+          body,
+          0,
+        );
 
-        // 清除標記，下一幀有持續碰撞時會再次標記
         body.isPushedByLighter = false;
+
         return;
       }
 
-      // 一般狀況下，清除很小的殘留水平速度
-      if (Math.abs(body.velocity.x) < 0.015) {
+      /*
+        只清除非常小的水平速度，
+        避免已經停下的球一直慢慢滑。
+      */
+      if (
+        Math.abs(body.velocity.x) < 0.015
+      ) {
         Matter.Body.setVelocity(body, {
           x: 0,
           y: body.velocity.y,
         });
       }
 
-      if (Math.abs(body.angularVelocity) < 0.02) {
-        Matter.Body.setAngularVelocity(body, 0);
+      if (
+        Math.abs(body.angularVelocity) <
+        0.02
+      ) {
+        Matter.Body.setAngularVelocity(
+          body,
+          0,
+        );
       }
     });
   });
 
-  // 意思： 球的最上緣碰到紅線 看之後的圖片大小
+  /* =========================
+     Game Over 判斷
+     ========================= */
+
   Events.on(engine, "afterUpdate", () => {
     if (isGameOver.value) return;
 
-    const balls = engine.world.bodies.filter((body) => body.level);
+    const balls =
+      engine.world.bodies.filter(
+        (body) => body.level,
+      );
 
     const now = Date.now();
 
     for (const ball of balls) {
       if (
+        ball.createdAt &&
         now - ball.createdAt > 1500 &&
         ball.speed < 0.5 &&
-        ball.position.y - ball.circleRadius < GAME_OVER_LINE
+        ball.position.y -
+          ball.circleRadius <
+          GAME_OVER_LINE
       ) {
         isGameOver.value = true;
+
         console.log("GAME OVER");
+
         break;
       }
     }
   });
+
   /* =========================
-     碰撞偵測與合成邏輯
+     相同等級合成
      ========================= */
 
-  Events.on(engine, "collisionStart", (event) => {
-    event.pairs.forEach((pair) => {
-      const ballA = pair.bodyA;
-      const ballB = pair.bodyB;
-      // 這段用來關閉合成
-      // const ENABLE_MERGE = false;
-      // 只有兩顆都有 level，且 level 相同時才合成　 標記正在合成中
-      if (
-        ballA.level &&
-        ballB.level &&
-        ballA.level === ballB.level &&
-        !ballA.isMerging &&
-        !ballB.isMerging
-      ) {
-        // 這段用來關閉合成
-        // if (!ENABLE_MERGE) return;
+  Events.on(
+    engine,
+    "collisionStart",
+    (event) => {
+      event.pairs.forEach((pair) => {
+        const ballA = pair.bodyA;
+        const ballB = pair.bodyB;
+
+        // 牆壁與地板沒有 level
+        if (
+          !ballA.level ||
+          !ballB.level
+        ) {
+          return;
+        }
+
+        // 只有相同等級才合成
+        if (
+          ballA.level !== ballB.level
+        ) {
+          return;
+        }
+
+        // 避免同一顆球重複合成
+        if (
+          ballA.isMerging ||
+          ballB.isMerging
+        ) {
+          return;
+        }
+
         ballA.isMerging = true;
         ballB.isMerging = true;
 
-        // 新球出現在兩顆球的中間
-        const newX = (ballA.position.x + ballB.position.x) / 2;
-        const newY = (ballA.position.y + ballB.position.y) / 2;
+        const newLevel =
+          ballA.level + 1;
+
+        /*
+          LV12 不再繼續往上合成。
+        */
+        if (newLevel > MAX_LEVEL) {
+          ballA.isMerging = false;
+          ballB.isMerging = false;
+
+          return;
+        }
+
+        const newX =
+          (ballA.position.x +
+            ballB.position.x) /
+          2;
+
+        const newY =
+          (ballA.position.y +
+            ballB.position.y) /
+          2;
+
         addMergeEffect(newX, newY);
 
-        // 新球等級 +1
-        const newLevel = ballA.level + 1;
-
-        // 超過最大等級就不再合成
-        if (newLevel > MAX_LEVEL) return;
-
-        // 合成成功加分
-        emit("update-score", props.score + newLevel * 10);
-
-        // 移除原本兩顆球
-        Composite.remove(engine.world, ballA);
-        Composite.remove(engine.world, ballB);
-
-        // 建立合成後的新球
-        const newBall = Bodies.circle(
-          newX,
-          newY,
-          getBallRadius(newLevel),
-          {
-            level: newLevel,
-
-            restitution: 0.05,
-            friction: 0.12,
-            frictionStatic: 0.8,
-            frictionAir: 0.015,
-            slop: 0.04,
-            density: getBallDensity(newLevel),
-            inertia: Infinity,
-
-            render: getBallRender(newLevel),
-          }
+        emit(
+          "update-score",
+          props.score + newLevel * 10,
         );
 
-        // collisionActive，只要小球仍然接觸重球，就會持續阻止重球被水平推走。
-        Events.on(engine, "collisionActive", (event) => {
-          event.pairs.forEach((pair) => {
-            const ballA = pair.bodyA;
-            const ballB = pair.bodyB;
+        Composite.remove(
+          engine.world,
+          ballA,
+        );
 
-            // 牆壁、地板沒有 level，不處理
-            if (!ballA.level || !ballB.level) return;
+        Composite.remove(
+          engine.world,
+          ballB,
+        );
 
-            // 相同等級要正常移動和合成，不處理
-            if (ballA.level === ballB.level) return;
+        const newBall =
+          Bodies.circle(
+            newX,
+            newY,
+            getBallRadius(newLevel),
+            {
+              level: newLevel,
 
-            // 找出哪顆比較重、哪顆比較輕
-            const heavyBall =
-              ballA.level > ballB.level ? ballA : ballB;
+              restitution: 0.05,
+              friction: 0.12,
+              frictionStatic: 0.8,
+              frictionAir: 0.015,
 
-  
-            // 重球本身還在掉落時，不要鎖住
-            const heavyBallIsSettled =
-              Math.abs(heavyBall.velocity.y) < 0.4;
+              slop: 0.04,
 
-            if (!heavyBallIsSettled) return;
+              density:
+                getBallDensity(
+                  newLevel,
+                ),
 
-            // 標記：這一幀重球正在被輕球碰撞
-            heavyBall.isPushedByLighter = true;
-          });
-        });
+              inertia: Infinity,
 
-        // 加入新球
-        Composite.add(engine.world, newBall);
-      }
-    });
-  });
+              render:
+                getBallRender(
+                  newLevel,
+                ),
+            },
+          );
+
+        /*
+          合成球也要有建立時間，
+          Game Over 才能正常判斷。
+        */
+        newBall.createdAt = Date.now();
+
+        Composite.add(
+          engine.world,
+          newBall,
+        );
+      });
+    },
+  );
+
+  /* =========================
+     輕球推動重球限制
+     ========================= */
+
+  /*
+    注意：
+    collisionActive 一定要放在
+    collisionStart 外面。
+
+    這樣整場遊戲只會註冊一次。
+  */
+  Events.on(
+    engine,
+    "collisionActive",
+    (event) => {
+      event.pairs.forEach((pair) => {
+        const ballA = pair.bodyA;
+        const ballB = pair.bodyB;
+
+        // 排除牆壁和地板
+        if (
+          !ballA.level ||
+          !ballB.level
+        ) {
+          return;
+        }
+
+        // 相同等級要正常合成
+        if (
+          ballA.level === ballB.level
+        ) {
+          return;
+        }
+
+        const heavyBall =
+          ballA.level > ballB.level
+            ? ballA
+            : ballB;
+
+        /*
+          重球還在空中時不要鎖住，
+          否則會影響正常掉落。
+        */
+        const heavyBallIsSettled =
+          Math.abs(
+            heavyBall.velocity.y,
+          ) < 0.4;
+
+        if (!heavyBallIsSettled) return;
+
+        heavyBall.isPushedByLighter =
+          true;
+      });
+    },
+  );
 });
 
 /* =========================
-   點擊重整頁面
-   
+   新增球
+   ========================= */
+
+function addBall(event) {
+  /*
+    手機使用 pointerup，
+    不再使用 click 掉球。
+  */
+  if (isMobile()) return;
+
+  const x = getBoardX(event);
+
+  addBallAtX(x);
+}
+
+function addBallAtX(x) {
+  if (isGameOver.value) return;
+  if (!canDropBall) return;
+
+  const level = currentLevel.value;
+
+  const safeX = clampPreviewX(
+    x,
+    level,
+  );
+
+  canDropBall = false;
+
+  setTimeout(() => {
+    canDropBall = true;
+  }, DROP_COOLDOWN);
+
+  const {
+    Bodies,
+    Composite,
+  } = Matter;
+
+  const ball = Bodies.circle(
+    safeX,
+    40,
+    getBallRadius(level),
+    {
+      level,
+
+      restitution: 0.05,
+      friction: 0.12,
+      frictionStatic: 0.8,
+      frictionAir: 0.015,
+
+      slop: 0.04,
+
+      density:
+        getBallDensity(level),
+
+      inertia: Infinity,
+
+      render:
+        getBallRender(level),
+    },
+  );
+
+  ball.createdAt = Date.now();
+
+  Composite.add(
+    engine.world,
+    ball,
+  );
+
+  currentLevel.value =
+    nextLevel.value;
+
+  nextLevel.value =
+    getRandomLevel();
+
+  emit(
+    "update-next-level",
+    nextLevel.value,
+  );
+}
+
+/* =========================
+   重新開始
    ========================= */
 
 function restartGame() {
-  console.log("restart clicked");
   window.location.reload();
 }
 
 defineExpose({
   restartGame,
 });
-
-// 判斷螢幕大小
-
-function isMobile() {
-  return window.innerWidth <= 768;
-}
-const isAiming = ref(false);
-
-function getBoardX(event) {
-  const rect = gameBoard.value.getBoundingClientRect();
-  const scaleX = BOARD_WIDTH / rect.width;
-
-  return (event.clientX - rect.left) * scaleX;
-}
-
-function startAim(event) {
-  if (!isMobile()) return
-  if (isGameOver.value) return
-
-  isAiming.value = true
-  previewX.value = clampPreviewX(getBoardX(event))
-}
-function moveAim(event) {
-  if (!isMobile()) return
-  if (!isAiming.value) return
-
-  previewX.value = clampPreviewX(getBoardX(event))
-}
-
-function dropBall(event) {
-  if (!isMobile()) return
-  if (!isAiming.value) return
-
-  isAiming.value = false
-  previewX.value = clampPreviewX(getBoardX(event))
-
-  addBallAtX(previewX.value)
-}
-/* =========================
-   點擊新增球
-   ========================= */
-
-function addBall(event) {
-  // 手機版不要用 click 掉球，避免點擊和放手重複觸發
-  if (isMobile()) return;
-
-  const x = getBoardX(event);
-  addBallAtX(x);
-}
-
-function addBallAtX(x) {
-  if (isGameOver.value) return
-  if (!canDropBall) return
-
-  const level = currentLevel.value
-  const safeX = clampPreviewX(x, level)
-
-  canDropBall = false
-  setTimeout(() => {
-    canDropBall = true
-  }, DROP_COOLDOWN)
-
-  const { Bodies, Composite } = Matter
-  const ball = Bodies.circle(safeX, 40, getBallRadius(level), {
-    restitution: 0.05,
-    friction: 0.12,
-    frictionStatic: 0.8,
-    frictionAir: 0.015,
-    slop: 0.04,
-    density: getBallDensity(level),
-    inertia: Infinity,
-
-    level,
-    render: getBallRender(level),
-  });
-  ball.createdAt = Date.now()
-  Composite.add(engine.world, ball)
-
-  currentLevel.value = nextLevel.value
-  nextLevel.value = getRandomLevel()
-  emit("update-next-level", nextLevel.value)
-}
-
 </script>
+
 <template>
-  <!-- <div class="score-box">分數：{{ score }}</div> -->
   <div class="game-layout">
     <div class="game-wrapper">
-      <div ref="gameBoard" class="game-board" @mousemove="movePreview" @click="addBall" @pointerdown="startAim"
-        @pointermove="moveAim" @pointerup="dropBall">
+      <div
+        ref="gameBoard"
+        class="game-board"
+        @mousemove="movePreview"
+        @click="addBall"
+        @pointerdown="startAim"
+        @pointermove="moveAim"
+        @pointerup="dropBall"
+        @pointercancel="cancelAim"
+      >
         <div class="game-over-line"></div>
-        <div class="aim-line" :style="{
-          left: `${previewX}px`,
-        }"></div>
-        <img v-if="getBallImage(currentLevel)" class="preview-ball" :src="getBallImage(currentLevel)" :style="{
-          left: `${previewX}px`,
-          width: `${BALL_SIZES[currentLevel]}px`,
-          height: `${BALL_SIZES[currentLevel]}px`,
-        }" />
 
-        <div v-else class="preview-ball" :style="{
-          left: `${previewX}px`,
-          backgroundColor: BALL_COLORS[currentLevel],
-          width: `${BALL_SIZES[currentLevel]}px`,
-          height: `${BALL_SIZES[currentLevel]}px`,
-        }"></div>
-        <div v-for="effect in mergeEffects" :key="effect.id" class="merge-effect" :style="{
-          left: `${effect.x}px`,
-          top: `${effect.y}px`,
-        }">
+        <div
+          class="aim-line"
+          :style="{
+            left: `${previewX}px`,
+          }"
+        ></div>
+
+        <!--
+          不設定固定 height，
+          避免非正方形 PNG 被壓扁或拉長。
+        -->
+        <img
+          class="preview-ball"
+          :src="getBallImage(currentLevel)"
+          :style="{
+            left: `${previewX}px`,
+            width: `${BALL_SIZES[currentLevel]}px`,
+          }"
+          alt=""
+          draggable="false"
+        />
+
+        <div
+          v-for="effect in mergeEffects"
+          :key="effect.id"
+          class="merge-effect"
+          :style="{
+            left: `${effect.x}px`,
+            top: `${effect.y}px`,
+          }"
+        >
           POP!
         </div>
-        <div v-if="isGameOver" class="game-over-mask">
+
+        <div
+          v-if="isGameOver"
+          class="game-over-mask"
+        >
           <div class="game-over-panel">
             <h2>GAME OVER</h2>
+
             <p>分數：{{ score }}</p>
 
-            <button type="button" class="restart-btn" @click.stop="restartGame">
+            <button
+              type="button"
+              class="restart-btn"
+              @click.stop="restartGame"
+            >
               再玩一次
             </button>
           </div>
@@ -556,19 +807,27 @@ function addBallAtX(x) {
 <style scoped>
 .game-board {
   position: relative;
+
   width: 420px;
   height: 640px;
+
   box-sizing: content-box;
+
   border: 4px solid #333;
   border-radius: 16px;
+
   overflow: hidden;
+
   background: #ffffff;
+
   touch-action: none;
 }
 
 .game-layout {
   position: relative;
+
   width: fit-content;
+
   margin: 0 auto;
 }
 
@@ -576,58 +835,100 @@ function addBallAtX(x) {
   position: relative;
 }
 
+/* =========================
+   死亡線
+   ========================= */
 
 .game-over-line {
   position: absolute;
-  width: 100%;
+
   top: 140px;
   left: 0;
+
+  width: 100%;
   height: 0;
+
   border-top: 3px dashed red;
+
   z-index: 100;
+
   pointer-events: none;
 }
+
+/* =========================
+   預覽球
+   ========================= */
 
 .preview-ball {
   position: absolute;
-  transform: translateX(-50%);
-  pointer-events: none;
-  opacity: 0.8;
-  object-fit: contain;
+
   top: 30px;
+
+  height: auto;
+
+  display: block;
+
+  transform: translateX(-50%);
+
+  object-fit: contain;
+
+  opacity: 0.8;
+
+  pointer-events: none;
+
+  user-select: none;
 }
+
+/* =========================
+   瞄準線
+   ========================= */
 
 .aim-line {
   position: absolute;
+
   top: 84px;
   bottom: 0;
+
   width: 2px;
+
   background: aliceblue;
+
   transform: translateX(-50%);
+
   pointer-events: none;
+
   z-index: 10;
 }
 
+/* =========================
+   Game Over
+   ========================= */
 
 .game-over-mask {
   position: absolute;
+
   inset: 0;
 
-  background: rgba(0, 0, 0, 0.5);
-
   display: flex;
+
   justify-content: center;
   align-items: center;
+
+  background: rgba(0, 0, 0, 0.5);
 
   z-index: 999;
 }
 
 .game-over-panel {
-  background: white;
-  padding: 24px;
-  border-radius: 20px;
-  text-align: center;
   min-width: 220px;
+
+  padding: 24px;
+
+  border-radius: 20px;
+
+  background: white;
+
+  text-align: center;
 }
 
 .game-over-panel h2 {
@@ -640,73 +941,96 @@ function addBallAtX(x) {
 
 .restart-btn {
   padding: 10px 20px;
+
   border: none;
   border-radius: 999px;
-  cursor: pointer;
+
   background: #ffb347;
+
   font-size: 16px;
+
+  cursor: pointer;
 }
 
-/* 
-/* 🎯 關鍵修正：強制讓 Matter.js 產生的 canvas 填滿 600x800 的格子 */
-/* .game-board :deep(canvas) {
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
-}  */
+/* =========================
+   合成特效
+   ========================= */
 
-/* 合成特效 */
 .merge-effect {
   position: absolute;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 200;
 
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+  width: 50px;
+  height: 50px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
-  background: rgba(255, 211, 120, 0.85);
-  border: 3px solid #fff;
+  transform: translate(-50%, -50%);
+
   color: #7a4b22;
+
   font-size: 14px;
   font-weight: 900;
 
-  animation: merge-pop 0.4s ease-out forwards;
+  /*
+    改成透明，
+    避免蓋住剛生成的 newBall。
+  */
+  background: transparent;
+
+  pointer-events: none;
+
+  z-index: 200;
+
+  animation:
+    merge-pop 0.22s ease-out
+    forwards;
 }
 
 @keyframes merge-pop {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.4);
+
+    transform:
+      translate(-50%, -50%)
+      scale(0.4);
   }
 
   40% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.15);
+
+    transform:
+      translate(-50%, -50%)
+      scale(1.15);
   }
 
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(1.6);
+
+    transform:
+      translate(-50%, -50%)
+      scale(1.6);
   }
 }
 
-/* rwd below */
+/* =========================
+   手機版
+   ========================= */
+
 @media (max-width: 576px) {
   .game-layout {
     width: 315px;
     height: 480px;
+
     margin: 0 auto;
   }
 
   .game-board {
     width: 420px;
     height: 640px;
+
     transform: scale(0.75);
     transform-origin: top left;
   }
@@ -714,6 +1038,8 @@ function addBallAtX(x) {
   .game-board :deep(canvas) {
     width: 420px !important;
     height: 640px !important;
+
+    display: block;
   }
 }
 
@@ -726,6 +1052,7 @@ function addBallAtX(x) {
   .game-board {
     width: 420px;
     height: 640px;
+
     transform: scale(0.708);
     transform-origin: top left;
   }
@@ -733,6 +1060,8 @@ function addBallAtX(x) {
   .game-board :deep(canvas) {
     width: 420px !important;
     height: 640px !important;
+
+    display: block;
   }
 }
 </style>
