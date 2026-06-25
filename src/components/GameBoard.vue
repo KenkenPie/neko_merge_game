@@ -43,8 +43,8 @@ const emit = defineEmits(["update-score", "update-next-level"]);
 const isGameOver = ref(false);
 const GAME_OVER_LINE = 140;
 
-// 最大等級，超過 LV10 就不再合成
-const MAX_LEVEL = 10;
+// 最大等級，超過 LV12 就不再合成
+const MAX_LEVEL = 12;
 
 // 遊戲區尺寸
 const BOARD_WIDTH = 420;
@@ -65,6 +65,11 @@ const BALL_SIZES = {
   11: 200,
   12: 220,
 };
+
+// 增加球的重量
+function getBallDensity(level) {
+  return 0.001 + level * 0.001;
+}
 // 依照等級計算球半徑
 
 function getBallRadius(level) {
@@ -86,19 +91,7 @@ const BALL_IMAGES = {
 };
 
 // 不同等級的球顏色
-const BALL_COLORS = {
-  1: "orange",
-  2: "red",
-  3: "blue",
-  4: "green",
-  5: "purple",
-  6: "pink",
-  7: "yellow",
-  8: "brown",
-  9: "gray",
-  10: "black",
-};
-
+  
 /* =========================
    預覽球設定
    ========================= */
@@ -197,6 +190,9 @@ onMounted(() => {
 
   // 建立物理引擎
   engine = Engine.create();
+  engine.positionIterations = 12;
+  engine.velocityIterations = 10;
+  engine.constraintIterations = 4;
 
   // 建立 Matter.js 畫布
   render = Render.create({
@@ -269,13 +265,33 @@ onMounted(() => {
 
 
   // 速度減慢之後動ㄥㄥ
-
   Events.on(engine, "beforeUpdate", () => {
     Composite.allBodies(engine.world).forEach((body) => {
       if (!body.level) return;
 
-      if (body.speed < 0.15) {
-        Matter.Body.setVelocity(body, { x: 0, y: body.velocity.y });
+      // 如果這顆重球上一幀被較輕的球推動
+      if (body.isPushedByLighter) {
+        Matter.Body.setVelocity(body, {
+          x: 0,
+          y: body.velocity.y,
+        });
+
+        Matter.Body.setAngularVelocity(body, 0);
+
+        // 清除標記，下一幀有持續碰撞時會再次標記
+        body.isPushedByLighter = false;
+        return;
+      }
+
+      // 一般狀況下，清除很小的殘留水平速度
+      if (Math.abs(body.velocity.x) < 0.015) {
+        Matter.Body.setVelocity(body, {
+          x: 0,
+          y: body.velocity.y,
+        });
+      }
+
+      if (Math.abs(body.angularVelocity) < 0.02) {
         Matter.Body.setAngularVelocity(body, 0);
       }
     });
@@ -343,15 +359,51 @@ onMounted(() => {
         Composite.remove(engine.world, ballB);
 
         // 建立合成後的新球
-        const newBall = Bodies.circle(newX, newY, getBallRadius(newLevel), {
-          level: newLevel,
-          restitution: 0.2,
-          friction: 0.3,
-          frictionStatic: 0.5,
-          frictionAir: 0.02,
-          inertia: Infinity,
+        const newBall = Bodies.circle(
+          newX,
+          newY,
+          getBallRadius(newLevel),
+          {
+            level: newLevel,
 
-          render: getBallRender(newLevel),
+            restitution: 0.05,
+            friction: 0.12,
+            frictionStatic: 0.8,
+            frictionAir: 0.015,
+            slop: 0.04,
+            density: getBallDensity(newLevel),
+            inertia: Infinity,
+
+            render: getBallRender(newLevel),
+          }
+        );
+
+        // collisionActive，只要小球仍然接觸重球，就會持續阻止重球被水平推走。
+        Events.on(engine, "collisionActive", (event) => {
+          event.pairs.forEach((pair) => {
+            const ballA = pair.bodyA;
+            const ballB = pair.bodyB;
+
+            // 牆壁、地板沒有 level，不處理
+            if (!ballA.level || !ballB.level) return;
+
+            // 相同等級要正常移動和合成，不處理
+            if (ballA.level === ballB.level) return;
+
+            // 找出哪顆比較重、哪顆比較輕
+            const heavyBall =
+              ballA.level > ballB.level ? ballA : ballB;
+
+  
+            // 重球本身還在掉落時，不要鎖住
+            const heavyBallIsSettled =
+              Math.abs(heavyBall.velocity.y) < 0.4;
+
+            if (!heavyBallIsSettled) return;
+
+            // 標記：這一幀重球正在被輕球碰撞
+            heavyBall.isPushedByLighter = true;
+          });
         });
 
         // 加入新球
@@ -438,15 +490,17 @@ function addBallAtX(x) {
 
   const { Bodies, Composite } = Matter
   const ball = Bodies.circle(safeX, 40, getBallRadius(level), {
-    restitution: 0.2,
-    friction: 0.08,
-    frictionStatic: 0.1,
-    frictionAir: 0.01,
+    restitution: 0.05,
+    friction: 0.12,
+    frictionStatic: 0.8,
+    frictionAir: 0.015,
+    slop: 0.04,
+    density: getBallDensity(level),
     inertia: Infinity,
+
     level,
     render: getBallRender(level),
-  })
-
+  });
   ball.createdAt = Date.now()
   Composite.add(engine.world, ball)
 
@@ -522,9 +576,6 @@ function addBallAtX(x) {
   position: relative;
 }
 
-.restart {
-  cursor: pointer;
-}
 
 .game-over-line {
   position: absolute;
@@ -557,9 +608,6 @@ function addBallAtX(x) {
   z-index: 10;
 }
 
-.side-panel {
-  width: 120px;
-}
 
 .game-over-mask {
   position: absolute;
