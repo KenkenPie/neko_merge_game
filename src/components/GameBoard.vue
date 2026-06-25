@@ -145,13 +145,15 @@ function getBallRender(level) {
         xScale: 1,
         yScale: 1,
       },
-    };
+    }
   }
 
-  return {
-    fillStyle: BALL_COLORS[level],
-  };
-}
+
+
+return {
+  fillStyle: BALL_COLORS[level],
+};
+  }
 
 function getBallImage(level) {
   return BALL_IMAGES[level] || null;
@@ -259,16 +261,16 @@ onMounted(() => {
 
   // 速度減慢之後動ㄥㄥ
 
-Events.on(engine, "beforeUpdate", () => {
-  Composite.allBodies(engine.world).forEach((body) => {
-    if (!body.level) return;
+  Events.on(engine, "beforeUpdate", () => {
+    Composite.allBodies(engine.world).forEach((body) => {
+      if (!body.level) return;
 
-    if (body.speed < 0.15) {
-      Matter.Body.setVelocity(body, { x: 0, y: body.velocity.y });
-      Matter.Body.setAngularVelocity(body, 0);
-    }
+      if (body.speed < 0.15) {
+        Matter.Body.setVelocity(body, { x: 0, y: body.velocity.y });
+        Matter.Body.setAngularVelocity(body, 0);
+      }
+    });
   });
-});
 
   // 意思： 球的最上緣碰到紅線 看之後的圖片大小
   Events.on(engine, "afterUpdate", () => {
@@ -641,44 +643,41 @@ function addBallAtX(x) {
 }
 
 /* rwd below */
-
 @media (max-width: 576px) {
   .game-layout {
-    width: 360px;
+    width: 315px;
     height: 480px;
-    /* 640 * 0.75 */
     margin: 0 auto;
   }
 
   .game-board {
-    width: 480px;
+    width: 420px;
     height: 640px;
     transform: scale(0.75);
     transform-origin: top left;
   }
 
   .game-board :deep(canvas) {
-    width: 480px !important;
+    width: 420px !important;
     height: 640px !important;
   }
 }
 
 @media (max-width: 390px) {
   .game-layout {
-    width: 340px;
+    width: 297px;
     height: 453px;
-    /* 640 * 0.708 */
   }
 
   .game-board {
-    width: 480px;
+    width: 420px;
     height: 640px;
     transform: scale(0.708);
     transform-origin: top left;
   }
 
   .game-board :deep(canvas) {
-    width: 480px !important;
+    width: 420px !important;
     height: 640px !important;
   }
 }
