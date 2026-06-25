@@ -68,7 +68,7 @@ const BALL_SIZES = {
 // 依照等級計算球半徑
 
 function getBallRadius(level) {
-  return BALL_SIZES[level] / 2;
+  return BALL_SIZES[level] * 0.46;
 }
 
 // 測試lv1球改圖片
@@ -206,6 +206,9 @@ onMounted(() => {
     20,
     {
       isStatic: true,
+      friction: 1,
+      frictionStatic: 1,
+      restitution: 0,
       render: {
         visible: false,
       },
@@ -252,6 +255,20 @@ onMounted(() => {
   //   ball.position.y - ball.circleRadius <
   //   GAME_OVER_LINE
   // )
+
+
+  // 速度減慢之後動ㄥㄥ
+
+Events.on(engine, "beforeUpdate", () => {
+  Composite.allBodies(engine.world).forEach((body) => {
+    if (!body.level) return;
+
+    if (body.speed < 0.15) {
+      Matter.Body.setVelocity(body, { x: 0, y: body.velocity.y });
+      Matter.Body.setAngularVelocity(body, 0);
+    }
+  });
+});
 
   // 意思： 球的最上緣碰到紅線 看之後的圖片大小
   Events.on(engine, "afterUpdate", () => {
@@ -317,9 +334,12 @@ onMounted(() => {
         // 建立合成後的新球
         const newBall = Bodies.circle(newX, newY, getBallRadius(newLevel), {
           level: newLevel,
-          restitution: 0.25,
-          friction: 0.5,
+          restitution: 0.2,
+          friction: 0.3,
           frictionStatic: 0.5,
+          frictionAir: 0.02,
+          inertia: Infinity,
+
           render: getBallRender(newLevel),
         });
 
@@ -409,9 +429,12 @@ function addBallAtX(x) {
   const level = currentLevel.value;
 
   const ball = Bodies.circle(x, 40, getBallRadius(level), {
-    restitution: 0.25,
-    friction: 0.5,
+    restitution: 0.2,
+    friction: 0.3,
     frictionStatic: 0.5,
+    frictionAir: 0.02,
+    inertia: Infinity,
+
     level,
     render: getBallRender(level),
   });
@@ -429,52 +452,28 @@ function addBallAtX(x) {
   <!-- <div class="score-box">分數：{{ score }}</div> -->
   <div class="game-layout">
     <div class="game-wrapper">
-      <div
-        ref="gameBoard"
-        class="game-board"
-        @mousemove="movePreview"
-        @click="addBall"
-        @pointerdown="startAim"
-        @pointermove="moveAim"
-        @pointerup="dropBall"
-      >
+      <div ref="gameBoard" class="game-board" @mousemove="movePreview" @click="addBall" @pointerdown="startAim"
+        @pointermove="moveAim" @pointerup="dropBall">
         <div class="game-over-line"></div>
-        <div
-          class="aim-line"
-          :style="{
-            left: `${previewX}px`,
-          }"
-        ></div>
-        <img
-          v-if="getBallImage(currentLevel)"
-          class="preview-ball"
-          :src="getBallImage(currentLevel)"
-          :style="{
-            left: `${previewX}px`,
-            width: `${BALL_SIZES[currentLevel]}px`,
-            height: `${BALL_SIZES[currentLevel]}px`,
-          }"
-        />
+        <div class="aim-line" :style="{
+          left: `${previewX}px`,
+        }"></div>
+        <img v-if="getBallImage(currentLevel)" class="preview-ball" :src="getBallImage(currentLevel)" :style="{
+          left: `${previewX}px`,
+          width: `${BALL_SIZES[currentLevel]}px`,
+          height: `${BALL_SIZES[currentLevel]}px`,
+        }" />
 
-        <div
-          v-else
-          class="preview-ball"
-          :style="{
-            left: `${previewX}px`,
-            backgroundColor: BALL_COLORS[currentLevel],
-            width: `${BALL_SIZES[currentLevel]}px`,
-            height: `${BALL_SIZES[currentLevel]}px`,
-          }"
-        ></div>
-        <div
-          v-for="effect in mergeEffects"
-          :key="effect.id"
-          class="merge-effect"
-          :style="{
-            left: `${effect.x}px`,
-            top: `${effect.y}px`,
-          }"
-        >
+        <div v-else class="preview-ball" :style="{
+          left: `${previewX}px`,
+          backgroundColor: BALL_COLORS[currentLevel],
+          width: `${BALL_SIZES[currentLevel]}px`,
+          height: `${BALL_SIZES[currentLevel]}px`,
+        }"></div>
+        <div v-for="effect in mergeEffects" :key="effect.id" class="merge-effect" :style="{
+          left: `${effect.x}px`,
+          top: `${effect.y}px`,
+        }">
           POP!
         </div>
         <div v-if="isGameOver" class="game-over-mask">
@@ -536,7 +535,7 @@ function addBallAtX(x) {
   pointer-events: none;
   opacity: 0.8;
   object-fit: contain;
-  top:30px;
+  top: 30px;
 }
 
 .aim-line {
@@ -640,12 +639,14 @@ function addBallAtX(x) {
     transform: translate(-50%, -50%) scale(1.6);
   }
 }
+
 /* rwd below */
 
 @media (max-width: 576px) {
   .game-layout {
     width: 360px;
-    height: 480px; /* 640 * 0.75 */
+    height: 480px;
+    /* 640 * 0.75 */
     margin: 0 auto;
   }
 
@@ -665,7 +666,8 @@ function addBallAtX(x) {
 @media (max-width: 390px) {
   .game-layout {
     width: 340px;
-    height: 453px; /* 640 * 0.708 */
+    height: 453px;
+    /* 640 * 0.708 */
   }
 
   .game-board {

@@ -134,15 +134,24 @@ const handleRestart = () => {
 .icon-btn,
 .help-btn,
 .restart {
-  width: 36px;
-  height: 36px;
-  border: 2px solid #333;
+  font-family:'Fredoka', sans-serif;
+  font-size:32px;
+ width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: #fff7ef;
-  font-size: 18px;
-  font-weight: bold;
+  border: 3px solid #444;
+  background: #fffaf0;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
+
+
+.icon-btn:hover,
+.help-btn:hover,
+.restart:hover {
+  transform: scale(1.08);
+}
+
 
 .score-box {
   font-size: 28px;
