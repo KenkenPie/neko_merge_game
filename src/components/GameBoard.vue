@@ -108,10 +108,12 @@ const previewX = ref(BOARD_WIDTH / 2);
 
 // 滑鼠移動時，讓預覽球跟著滑鼠左右移動
 function movePreview(event) {
-  const rect = gameBoard.value.getBoundingClientRect();
-  previewX.value = event.clientX - rect.left;
-}
+  const rect = gameBoard.value.getBoundingClientRect()
+  const scaleX = BOARD_WIDTH / rect.width
+  const x = (event.clientX - rect.left) * scaleX
 
+  previewX.value = clampPreviewX(x)
+}
 // 合成特效
 
 function addMergeEffect(x, y) {
@@ -133,6 +135,17 @@ function getRandomLevel() {
   return Math.floor(Math.random() * 4) + 1;
 }
 
+// 讓球不要超出牆壁
+
+function clampPreviewX(x, level = currentLevel.value) {
+  const radius = getBallRadius(level);
+
+  return Math.max(
+    radius,
+    Math.min(BOARD_WIDTH - radius, x)
+  );
+}
+
 // 根據球的等級決定要使用圖片還是顏色
 // 如果該等級有對應圖片，就使用圖片(texture)
 // 如果沒有圖片，就使用原本的顏色圓球
@@ -150,10 +163,10 @@ function getBallRender(level) {
 
 
 
-return {
-  fillStyle: BALL_COLORS[level],
-};
-  }
+  return {
+    fillStyle: BALL_COLORS[level],
+  };
+}
 
 function getBallImage(level) {
   return BALL_IMAGES[level] || null;
@@ -219,23 +232,19 @@ onMounted(() => {
 
   const leftWall = Bodies.rectangle(-25, BOARD_HEIGHT / 2, 50, BOARD_HEIGHT, {
     isStatic: true,
-    render: {
-      fillStyle: "#333",
-    },
+    friction: 0,
+    frictionStatic: 0,
+    restitution: 0,
+    render: { fillStyle: "#333" },
   });
 
-  const rightWall = Bodies.rectangle(
-    BOARD_WIDTH + 25,
-    BOARD_HEIGHT / 2,
-    50,
-    BOARD_HEIGHT,
-    {
-      isStatic: true,
-      render: {
-        fillStyle: "#333",
-      },
-    },
-  );
+  const rightWall = Bodies.rectangle(BOARD_WIDTH + 25, BOARD_HEIGHT / 2, 50, BOARD_HEIGHT, {
+    isStatic: true,
+    friction: 0,
+    frictionStatic: 0,
+    restitution: 0,
+    render: { fillStyle: "#333" },
+  });
 
   // 把牆壁和地板加入物理世界
   Composite.add(engine.world, [ground, leftWall, rightWall]);
@@ -381,30 +390,28 @@ function getBoardX(event) {
 }
 
 function startAim(event) {
-  if (!isMobile()) return;
-  if (isGameOver.value) return;
+  if (!isMobile()) return
+  if (isGameOver.value) return
 
-  isAiming.value = true;
-  previewX.value = getBoardX(event);
+  isAiming.value = true
+  previewX.value = clampPreviewX(getBoardX(event))
 }
-
 function moveAim(event) {
-  if (!isMobile()) return;
-  if (!isAiming.value) return;
+  if (!isMobile()) return
+  if (!isAiming.value) return
 
-  previewX.value = getBoardX(event);
+  previewX.value = clampPreviewX(getBoardX(event))
 }
 
 function dropBall(event) {
-  if (!isMobile()) return;
-  if (!isAiming.value) return;
+  if (!isMobile()) return
+  if (!isAiming.value) return
 
-  isAiming.value = false;
-  previewX.value = getBoardX(event);
+  isAiming.value = false
+  previewX.value = clampPreviewX(getBoardX(event))
 
-  addBallAtX(previewX.value);
+  addBallAtX(previewX.value)
 }
-
 /* =========================
    點擊新增球
    ========================= */
@@ -418,37 +425,36 @@ function addBall(event) {
 }
 
 function addBallAtX(x) {
-  if (isGameOver.value) return;
-  if (!canDropBall) return;
+  if (isGameOver.value) return
+  if (!canDropBall) return
 
-  canDropBall = false;
+  const level = currentLevel.value
+  const safeX = clampPreviewX(x, level)
+
+  canDropBall = false
   setTimeout(() => {
-    canDropBall = true;
-  }, DROP_COOLDOWN);
+    canDropBall = true
+  }, DROP_COOLDOWN)
 
-  const { Bodies, Composite } = Matter;
-
-  const level = currentLevel.value;
-
-  const ball = Bodies.circle(x, 40, getBallRadius(level), {
+  const { Bodies, Composite } = Matter
+  const ball = Bodies.circle(safeX, 40, getBallRadius(level), {
     restitution: 0.2,
-    friction: 0.3,
-    frictionStatic: 0.5,
-    frictionAir: 0.02,
+    friction: 0.08,
+    frictionStatic: 0.1,
+    frictionAir: 0.01,
     inertia: Infinity,
-
     level,
     render: getBallRender(level),
-  });
+  })
 
-  ball.createdAt = Date.now();
+  ball.createdAt = Date.now()
+  Composite.add(engine.world, ball)
 
-  Composite.add(engine.world, ball);
-
-  currentLevel.value = nextLevel.value;
-  nextLevel.value = getRandomLevel();
-  emit("update-next-level", nextLevel.value);
+  currentLevel.value = nextLevel.value
+  nextLevel.value = getRandomLevel()
+  emit("update-next-level", nextLevel.value)
 }
+
 </script>
 <template>
   <!-- <div class="score-box">分數：{{ score }}</div> -->
