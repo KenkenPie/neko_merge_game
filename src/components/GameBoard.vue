@@ -818,7 +818,7 @@ defineExpose({
 
   overflow: hidden;
 
-  background: #ffffff;
+  background:: #f6f2EC;
 
   touch-action: none;
 }
