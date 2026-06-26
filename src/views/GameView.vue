@@ -97,7 +97,7 @@ const handleRestart = () => {
 
 
 .game-page {
-  font-family:'Fredoka', sans-serif;
+  font-family: 'Fredoka', sans-serif;
   min-height: 100vh;
 
   background:
@@ -110,7 +110,9 @@ const handleRestart = () => {
 
   display: flex;
   justify-content: center;
+  align-items: center;
 }
+
 .game-shell {
   width: 624px;
   display: flex;
