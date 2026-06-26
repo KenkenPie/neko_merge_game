@@ -293,7 +293,7 @@ onMounted(() => {
       width: BOARD_WIDTH,
       height: BOARD_HEIGHT,
       wireframes: false,
-      background: "#ffffff",
+      background: "#f6f2EC",
     },
   });
 
