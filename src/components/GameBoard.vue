@@ -818,11 +818,11 @@ defineExpose({
 
   overflow: hidden;
 
-  background:: #f6f2EC;
+  background:#f6f2EC;
 
-  touch-action: none;
+  touch-action:none;
 }
-
+np
 .game-layout {
   position: relative;
 
