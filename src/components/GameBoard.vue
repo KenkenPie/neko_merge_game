@@ -2,18 +2,18 @@
 import { onMounted, ref } from "vue";
 import Matter from "matter-js";
 
-import lv1Img from "../img/gameIcon/lv1.png";
-import lv2Img from "../img/gameIcon/lv2.png";
-import lv3Img from "../img/gameIcon/lv3.png";
-import lv4Img from "../img/gameIcon/lv4.png";
-import lv5Img from "../img/gameIcon/lv5.png";
-import lv6Img from "../img/gameIcon/lv6.png";
-import lv7Img from "../img/gameIcon/lv7.png";
-import lv8Img from "../img/gameIcon/lv8.png";
-import lv9Img from "../img/gameIcon/lv9.png";
-import lv10Img from "../img/gameIcon/lv10.png";
-import lv11Img from "../img/gameIcon/lv11.png";
-import lv12Img from "../img/gameIcon/lv12.png";
+import lv1Img from "../img/gameIcon/lv1.webp";
+import lv2Img from "../img/gameIcon/lv2.webp";
+import lv3Img from "../img/gameIcon/lv3.webp";
+import lv4Img from "../img/gameIcon/lv4.webp";
+import lv5Img from "../img/gameIcon/lv5.webp";
+import lv6Img from "../img/gameIcon/lv6.webp";
+import lv7Img from "../img/gameIcon/lv7.webp";
+import lv8Img from "../img/gameIcon/lv8.webp";
+import lv9Img from "../img/gameIcon/lv9.webp";
+import lv10Img from "../img/gameIcon/lv10.webp";
+import lv11Img from "../img/gameIcon/lv11.webp";
+import lv12Img from "../img/gameIcon/lv12.webp";
 
 /* =========================
    基本狀態
