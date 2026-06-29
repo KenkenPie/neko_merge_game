@@ -15,6 +15,64 @@ import lv10Img from "../img/gameIcon/lv10.webp";
 import lv11Img from "../img/gameIcon/lv11.webp";
 import lv12Img from "../img/gameIcon/lv12.webp";
 
+// 音樂
+
+import bgmusicFile from "../assets/sounds/bgmusic.mp3";
+import clickFile from "../assets/sounds/click.mp3";
+import popFile from "../assets/sounds/pop.mp3";
+import gameoverFile from "../assets/sounds/gameoverbeep.mp3";
+import restartFile from "../assets/sounds/restart.mp3"
+
+
+
+const bgm = new Audio(bgmusicFile);
+bgm.loop = true;
+bgm.volume = 0.25;
+
+const musicOn = ref(false);
+
+const clickSound = new Audio(clickFile);
+clickSound.volume = 0.5;
+
+const popSound = new Audio(popFile);
+popSound.volume = 0.4;
+
+const gameOverSound = new Audio(gameoverFile);
+gameOverSound.volume = 0.6;
+
+const restartSound = new Audio(restartFile);
+restartSound.volume = 0.7;
+
+let bgmStarted = false;
+
+function startBGM() {
+  if (bgmStarted) return;
+
+  bgm.play().catch(() => { });
+  bgmStarted = true;
+  musicOn.value = true;
+}
+
+function toggleMusic() {
+  if (musicOn.value) {
+    bgm.pause();
+    musicOn.value = false;
+  } else {
+    bgm.play().catch(() => { });
+    bgmStarted = true;
+    musicOn.value = true;
+  }
+}
+
+
+defineExpose({
+  restartGame,
+  toggleMusic,
+});
+
+
+
+
 /* =========================
    基本狀態
    ========================= */
@@ -448,9 +506,11 @@ onMounted(() => {
         now - ball.createdAt > 1500 &&
         ball.speed < 0.5 &&
         ball.position.y -
-          ball.circleRadius <
-          GAME_OVER_LINE
+        ball.circleRadius <
+        GAME_OVER_LINE
       ) {
+        gameOverSound.currentTime = 0;
+        gameOverSound.play().catch(() => { });
         isGameOver.value = true;
 
         console.log("GAME OVER");
@@ -497,6 +557,10 @@ onMounted(() => {
 
         ballA.isMerging = true;
         ballB.isMerging = true;
+
+        popSound.currentTime = 0;
+        popSound.play();
+
 
         const newLevel =
           ballA.level + 1;
@@ -614,7 +678,6 @@ onMounted(() => {
         ) {
           return;
         }
-
         const heavyBall =
           ballA.level > ballB.level
             ? ballA
@@ -647,6 +710,7 @@ function addBall(event) {
     手機使用 pointerup，
     不再使用 click 掉球。
   */
+  startBGM();
   if (isMobile()) return;
 
   const x = getBoardX(event);
@@ -724,77 +788,50 @@ function addBallAtX(x) {
    ========================= */
 
 function restartGame() {
-  window.location.reload();
+  restartSound.currentTime = 0;
+  restartSound.play();
+
+  setTimeout(() => {
+    window.location.reload();
+  }, 600);
 }
 
-defineExpose({
-  restartGame,
-});
 </script>
 
 <template>
   <div class="game-layout">
     <div class="game-wrapper">
-      <div
-        ref="gameBoard"
-        class="game-board"
-        @mousemove="movePreview"
-        @click="addBall"
-        @pointerdown="startAim"
-        @pointermove="moveAim"
-        @pointerup="dropBall"
-        @pointercancel="cancelAim"
-      >
+      <div ref="gameBoard" class="game-board" @mousemove="movePreview" @click="addBall" @pointerdown="startAim"
+        @pointermove="moveAim" @pointerup="dropBall" @pointercancel="cancelAim">
         <div class="game-over-line"></div>
 
-        <div
-          class="aim-line"
-          :style="{
-            left: `${previewX}px`,
-          }"
-        ></div>
+        <div class="aim-line" :style="{
+          left: `${previewX}px`,
+        }"></div>
 
         <!--
           不設定固定 height，
           避免非正方形 PNG 被壓扁或拉長。
         -->
-        <img
-          class="preview-ball"
-          :src="getBallImage(currentLevel)"
-          :style="{
-            left: `${previewX}px`,
-            width: `${BALL_SIZES[currentLevel]}px`,
-          }"
-          alt=""
-          draggable="false"
-        />
+        <img class="preview-ball" :src="getBallImage(currentLevel)" :style="{
+          left: `${previewX}px`,
+          width: `${BALL_SIZES[currentLevel]}px`,
+        }" alt="" draggable="false" />
 
-        <div
-          v-for="effect in mergeEffects"
-          :key="effect.id"
-          class="merge-effect"
-          :style="{
-            left: `${effect.x}px`,
-            top: `${effect.y}px`,
-          }"
-        >
+        <div v-for="effect in mergeEffects" :key="effect.id" class="merge-effect" :style="{
+          left: `${effect.x}px`,
+          top: `${effect.y}px`,
+        }">
           POP!
         </div>
 
-        <div
-          v-if="isGameOver"
-          class="game-over-mask"
-        >
+        <div v-if="isGameOver" class="game-over-mask">
           <div class="game-over-panel">
             <h2>GAME OVER</h2>
 
             <p>分數：{{ score }}</p>
 
-            <button
-              type="button"
-              class="restart-btn"
-              @click.stop="restartGame"
-            >
+            <button type="button" class="restart-btn" @click.stop="restartGame">
               再玩一次
             </button>
           </div>
@@ -818,12 +855,12 @@ defineExpose({
 
   overflow: hidden;
 
-  background:#f6f2EC;
+  background: #f6f2EC;
 
-  touch-action:none;
+  touch-action: none;
 }
-np
-.game-layout {
+
+np .game-layout {
   position: relative;
 
   width: fit-content;
@@ -985,8 +1022,7 @@ np
   z-index: 200;
 
   animation:
-    merge-pop 0.22s ease-out
-    forwards;
+    merge-pop 0.22s ease-out forwards;
 }
 
 @keyframes merge-pop {
@@ -994,24 +1030,21 @@ np
     opacity: 0;
 
     transform:
-      translate(-50%, -50%)
-      scale(0.4);
+      translate(-50%, -50%) scale(0.4);
   }
 
   40% {
     opacity: 1;
 
     transform:
-      translate(-50%, -50%)
-      scale(1.15);
+      translate(-50%, -50%) scale(1.15);
   }
 
   100% {
     opacity: 0;
 
     transform:
-      translate(-50%, -50%)
-      scale(1.6);
+      translate(-50%, -50%) scale(1.6);
   }
 }
 

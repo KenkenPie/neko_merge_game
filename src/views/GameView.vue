@@ -16,6 +16,14 @@ import lv10Img from "../img/gameIcon/lv10.webp";
 import lv11Img from "../img/gameIcon/lv11.webp";
 import lv12Img from "../img/gameIcon/lv12.webp";
 
+
+const musicOn = ref(false);
+
+function handleToggleMusic() {
+  gameBoardRef.value?.toggleMusic();
+  musicOn.value = !musicOn.value;
+}
+
 const bestScore = ref(0);
 onMounted(() => {
   bestScore.value = Number(localStorage.getItem("neko-best-score")) || 0;
@@ -61,6 +69,9 @@ const handleRestart = () => {
       <div class="top-bar">
         <button class="help-btn" @click="showRule = true">?</button>
         <button class="restart" @click="handleRestart">↺</button>
+       <button class="icon-btn" @click="handleToggleMusic">
+          {{ musicOn ? "🔇" : "🔊" }}
+        </button>
         <div class="score-area">
           <div class="score-box">Score：{{ score }}</div>
           <div class="best-score">Best Score：{{ bestScore }}</div>
@@ -69,19 +80,10 @@ const handleRestart = () => {
         <div class="next-box">
           <p>Next:</p>
 
-          <img
-            v-if="BALL_IMAGES[nextLevel]"
-            :src="BALL_IMAGES[nextLevel]"
-            class="next-mini"
-          />
+          <img v-if="BALL_IMAGES[nextLevel]" :src="BALL_IMAGES[nextLevel]" class="next-mini" />
         </div>
       </div>
-      <GameBoard
-        ref="gameBoardRef"
-        :score="score"
-        @update-score="updateScore"
-        @update-next-level="updateNextLevel"
-      />
+      <GameBoard ref="gameBoardRef" :score="score" @update-score="updateScore" @update-next-level="updateNextLevel" />
     </div>
 
     <div v-if="showRule" class="rule-mask" @click="showRule = false">
@@ -93,9 +95,6 @@ const handleRestart = () => {
   </div>
 </template>
 <style scoped>
-
-
-
 .game-page {
   font-family: 'Fredoka', sans-serif;
   min-height: 100vh;
@@ -136,9 +135,9 @@ const handleRestart = () => {
 .icon-btn,
 .help-btn,
 .restart {
-  font-family:'Fredoka', sans-serif;
-  font-size:32px;
- width: 52px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 32px;
+  width: 52px;
   height: 52px;
   border-radius: 50%;
   border: 3px solid #444;
@@ -168,9 +167,9 @@ const handleRestart = () => {
   font-weight: bold;
 }
 
-.next-box p{
-font-weight: 700;
-margin:0;
+.next-box p {
+  font-weight: 700;
+  margin: 0;
 }
 
 .next-mini {
